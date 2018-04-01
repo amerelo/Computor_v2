@@ -1,7 +1,8 @@
-use std::str::FromStr;
 use std::fmt::Debug;
+use std::str;
 use nom;
-use nom::{digit};
+use nom::{digit, alphanumeric};
+// use std::ops::{ Add, Sub ,Div , Mul};
 // , Err,ErrorKind
 
 #[derive(PartialEq, Debug)]
@@ -11,7 +12,72 @@ pub enum ResultKind {
 	INCOMP,
 }
 
-named!(signed_digits<&str, &str	>,
+#[derive(PartialEq, Debug)]
+pub enum ComputorUnit {
+	I64(i64),
+	F64(f64),
+	VAR(String),
+	ATT(String),
+	MAT(Vec<ComputorUnit>)
+}
+
+#[derive(PartialEq, Debug)]
+pub struct ComputorElem {
+	pub unit: ComputorUnit,
+	// pub mat: Vec<ComputorUnit>,
+}
+
+// #[derive(PartialEq, Debug)]
+// pub enum ComputorElem {
+// 	Unit(ComputorUnit),
+// 	Mat(Vec<ComputorUnit>),
+// 	// Func(f64),
+// }
+
+// impl Add for ComputorElem {
+// 	type Output = ComputorElem;
+//
+// 	fn add(self, other: ComputorElem) -> ComputorElem {
+// 		ComputorElem {
+// 			unit: self.unit + other.unit
+// 		}
+// 	}
+// }
+//
+// impl Sub for ComputorElem {
+// 	type Output = ComputorElem;
+//
+// 	fn sub(self, other: ComputorElem) -> ComputorElem {
+// 		ComputorElem {
+// 			unit: self.unit - other.unit
+// 		}
+// 	}
+// }
+//
+// impl Mul for ComputorElem {
+// 	type Output = ComputorElem;
+//
+// 	fn mul(self, other: ComputorElem) -> ComputorElem {
+// 		ComputorElem {
+// 			unit: self.unit * other.unit
+// 		}
+// 	}
+// }
+//
+// impl Div for ComputorElem {
+// 	type Output = ComputorElem;
+//
+// 	fn div(self, other: ComputorElem) -> ComputorElem {
+// 		if other.unit == 0.0 {
+// 			panic!("Cannot divide by zero-valued `Rational`!");
+// 		}
+// 		ComputorElem {
+// 			unit: self.unit / other.unit
+// 		}
+// 	}
+// }
+
+named!(signed_digits<&str, &str>,
 	recognize!(
 		tuple!(
 			opt!(alt!(tag_s!("+") | tag_s!("-"))),
@@ -24,26 +90,70 @@ named!(floating_point<&str,&str>,
 	recognize!(
 		tuple!(
 			signed_digits,
-			opt!(complete!(pair!(
+			complete!(pair!(
 				tag_s!("."),
 				digit
-			)))
+			))
 		)
 	)
 );
 
-named!(pub float64<&str, f64>,
-	map_res!(floating_point, FromStr::from_str)
+named!(pub int64<&str, ComputorElem>, do_parse!(
+	elem: map_res!(signed_digits, str::FromStr::from_str) >>
+	(ComputorElem{ unit: ComputorUnit::I64(elem) })
+));
+
+named!(pub float64<&str, ComputorElem>, do_parse!(
+	elem: map_res!(floating_point, str::FromStr::from_str) >>
+	(ComputorElem{ unit: ComputorUnit::F64(elem) })
+));
+
+named!(pub get_attributor<&str, ComputorElem>, do_parse!(
+	elem: alt!(
+			tag!("=") |
+			tag!("+") |
+			tag!("-") |
+			tag!("/") |
+			tag!("*") |
+			tag!("^")
+	) >>
+	(ComputorElem{ unit: ComputorUnit::ATT( String::from(elem) ) })
+));
+
+named!(pub get_var<&str, ComputorElem>, do_parse!(
+	elem: fold_many0!(
+			alphanumeric,
+			String::new(),
+			|mut acc: String, v | {
+				acc = String::from(v);// str::from_utf8(v).unwrap().to_string();
+				acc
+			}
+		)  >>
+		( ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
+));
+
+named!(pub select_parser<&str, Vec<ComputorElem> >,
+	do_parse!(
+		res: many1!(
+			alt!(
+				ws!(float64) |
+				ws!(int64) |
+				ws!(get_attributor) |
+				ws!(get_var)
+			)
+		) >>
+		(res)
+	)
 );
 
-// named!(factor<&str, f64>,
+// named!(factor<&str, ComputorElem >,
 // 	alt!(
 // 		ws!(float64) |
 // 		ws!(delimited!( tag_s!("("), expr, tag_s!(")") ))
 // 	)
 // );
 //
-// named!(term<&str, f64>, do_parse!(
+// named!(term<&str, ComputorElem >, do_parse!(
 // 	init: factor >>
 // 	res: fold_many0!(
 // 		tuple!(
@@ -51,14 +161,14 @@ named!(pub float64<&str, f64>,
 // 			factor
 // 		),
 // 		init,
-// 		|acc, v:(_,f64)| {
+// 		|acc, v:(_,ComputorElem)| {
 // 			if v.0 == "*" {acc * v.1} else {acc / v.1}
 // 		}
 // 	)
 // 	>> (res)
 // ));
 //
-// named!(expr<&str, f64>, do_parse!(
+// named!(pub expr<&str, ComputorElem >, do_parse!(
 // 	init: term >>
 // 	res: fold_many0!(
 // 		tuple!(
@@ -66,7 +176,7 @@ named!(pub float64<&str, f64>,
 // 			term
 // 		),
 // 		init,
-// 		|acc, v:(_,f64)| {
+// 		|acc, v:(_,ComputorElem )| {
 // 			if v.0 == "+" {acc + v.1} else {acc - v.1}
 // 		}
 // 	)

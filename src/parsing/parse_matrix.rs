@@ -1,57 +1,57 @@
-use parsing::parse::{ float64 };
+// use parsing::parse::{ float64 };
 
-named!(get_nextfloat<&str, f64>, do_parse!(
-	ws!(tag_s!(",")) >>
-	val: ws!(float64) >>
-	(val)
-));
-
-named!(get_vec<&str, Vec<f64> >, do_parse!(
-	res: many1!(
-		alt!(
-			ws!(float64) | get_nextfloat
-		)
-	)
-	>> (res)
-));
-
-named!(get_next_vec<&str, Vec<f64> >, delimited!(
-	recognize!(
-			tuple!(
-				ws!(tag_s!(";")),
-				tag_s!("[")
-			)
-		),
-		get_vec,
-		tag_s!("]")
-	)
-);
-
-named!(matrix_elem<&str, Vec<Vec<f64> > >, do_parse!(
-	init: count!(
-		do_parse!(
-			tag_s!("[") >>
-			val: get_vec >>
-			tag_s!("]") >>
-			(val)
-		), 1
-	) >>
-	res: fold_many0!(
-		get_next_vec,
-		init,
-		|mut acc: Vec<Vec<f64>>, item| {
-			acc.push(item);
-			acc
-		}
-	)
-	>> (res)
-));
-
-named!(pub matrix<&str, Vec<Vec<f64> > >, ws!(
-		delimited!(
-			tag_s!("["), matrix_elem, tag_s!("]")
-		)
-));
+// named!(get_nextfloat<&str, f64>, do_parse!(
+// 	ws!(tag_s!(",")) >>
+// 	val: ws!(float64) >>
+// 	(val)
+// ));
+//
+// named!(get_vec<&str, Vec<f64> >, do_parse!(
+// 	res: many1!(
+// 		alt!(
+// 			ws!(float64) | get_nextfloat
+// 		)
+// 	)
+// 	>> (res)
+// ));
+//
+// named!(get_next_vec<&str, Vec<f64> >, delimited!(
+// 	recognize!(
+// 			tuple!(
+// 				ws!(tag_s!(";")),
+// 				tag_s!("[")
+// 			)
+// 		),
+// 		get_vec,
+// 		tag_s!("]")
+// 	)
+// );
+//
+// named!(matrix_elem<&str, Vec<Vec<f64> > >, do_parse!(
+// 	init: count!(
+// 		do_parse!(
+// 			tag_s!("[") >>
+// 			val: get_vec >>
+// 			tag_s!("]") >>
+// 			(val)
+// 		), 1
+// 	) >>
+// 	res: fold_many0!(
+// 		get_next_vec,
+// 		init,
+// 		|mut acc: Vec<Vec<f64>>, item| {
+// 			acc.push(item);
+// 			acc
+// 		}
+// 	)
+// 	>> (res)
+// ));
+//
+// named!(pub matrix<&str, Vec<Vec<f64> > >, ws!(
+// 		delimited!(
+// 			tag_s!("["), matrix_elem, tag_s!("]")
+// 		)
+// ));
 
 
 #[cfg(test)]
