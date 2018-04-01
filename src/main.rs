@@ -3,8 +3,18 @@ extern crate nom;
 
 mod parsing;
 
-use parsing::parse::test_nom;
+use parsing::parse::{ dump };
+use parsing::parse_matrix::{ matrix };
 // use std::num::ParseIntError;
+
+
+// TEST FUNCTION
+pub fn test_nom(name : &mut String)
+{
+	// dump(expr(name));
+	dump(matrix(name));
+}
+
 
 fn main()
 {
