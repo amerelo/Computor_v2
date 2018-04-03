@@ -21,7 +21,7 @@ use tui::widgets::{Block, Borders, Item, List, Paragraph, Widget};
 use tui::layout::{Direction, Group, Rect, Size};
 use tui::style::{Color, Style};
 
-use parsing::parse::{ get_var, select_parser}; //, expr
+use parsing::parse::{ expr, get_var, select_parser}; //, expr
 // use parsing::parse_matrix::{ matrix };
 // use std::num::ParseIntError;
 
@@ -250,7 +250,8 @@ fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
 	loop {
 		std::io::stdin().read_line(&mut name).ok().expect("Failed to read line");
 		// test_parse
-		dump(select_parser(&mut name));
+		// dump(select_parser(&mut name));
+		println!("{:?}", expr(&mut name));
 		// test_nom(&mut name);
 		name.clear();
 	}

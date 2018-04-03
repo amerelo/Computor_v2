@@ -82,8 +82,8 @@ named!(pub select_parser<&str, Vec<ComputorElem> >,
 
 named!(factor<&str, ComputorElem >,
 	alt!(
-		// ws!(int64) |
 		ws!(float64) |
+		ws!(int64) |
 		ws!(delimited!( tag_s!("("), expr, tag_s!(")") ))
 	)
 );
