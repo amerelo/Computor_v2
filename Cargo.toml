@@ -5,3 +5,5 @@ authors = ["Alexis Merelo <amerelo@student.42.fr>"]
 
 [dependencies]
 nom = "^3.2"
+tui = "0.2.1"
+termion = "*"
