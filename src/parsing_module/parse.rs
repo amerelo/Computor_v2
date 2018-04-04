@@ -4,7 +4,7 @@ use nom;
 use nom::{digit, alphanumeric};
 // , Err,ErrorKind
 
-use {ComputorUnit, ComputorElem};
+use elemt_module::computorelem::{ComputorUnit, ComputorElem};
 
 #[derive(PartialEq, Debug)]
 pub enum ResultKind {
@@ -58,9 +58,9 @@ named!(pub get_var<&str, ComputorElem>, do_parse!(
 	elem: fold_many0!(
 			alphanumeric,
 			String::new(),
-			|mut acc: String, v | {
-				acc = String::from(v);// str::from_utf8(v).unwrap().to_string();
-				acc
+			|mut _acc: String, v | {
+				_acc = String::from(v);// str::from_utf8(v).unwrap().to_string();
+				_acc
 			}
 		)  >>
 		( ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
@@ -117,8 +117,6 @@ named!(pub expr<&str, ComputorElem >, do_parse!(
 	)
 	>> (res)
 ));
-
-
 
 // pub fn test_parse(name : &mut String)
 // {
