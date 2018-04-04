@@ -7,24 +7,17 @@ extern crate termion;
 mod parsing_module;
 mod elemt_module;
 
-use std::sync::mpsc;
-use std::collections::HashMap;
-use std::{io, thread};
-
-use termion::event;
-use termion::input::TermRead;
-
-use tui::Terminal;
-use tui::backend::MouseBackend;
-use tui::widgets::{Block, Borders, Item, List, Paragraph, Widget};
-use tui::layout::{Direction, Group, Rect, Size};
-use tui::style::{Color, Style};
-
-use parsing_module::parse::{ expr, get_var, select_parser}; //, expr
+use std::{sync::mpsc, collections::HashMap, io, thread };
+use termion::{ event, input::TermRead };
+use tui::{ Terminal, backend::MouseBackend, 
+	widgets::{ Block, Borders, Item, List, Paragraph, Widget }, 
+	layout::{ Direction, Group, Rect, Size }, 
+	style::{ Color, Style }
+};
+use parsing_module::parse::{ select_next_parse, get_var, select_parser}; //, expr
 use elemt_module::computorelem::{ComputorUnit, ComputorElem};
 // use parsing::parse_matrix::{ matrix };
 // use std::num::ParseIntError;
-
 
 struct App {
 	size: Rect,
@@ -65,57 +58,59 @@ enum Event {
 // TEST FUNCTION
 // rest.drain(..());
 
-// pub fn dump<T: Debug>(res: nom::IResult<&str,T>)
-pub fn dump(res: nom::IResult<&str, Vec<ComputorElem>>)
+fn computorelem_to_string(computorelems: Vec<ComputorElem>) -> String
 {
-	if let nom::IResult::Done(rest, value) = res {
-		if !rest.is_empty() {
-			println!("invalid command> {:?}", rest)
-		} else {
-			// println!("{:?}", value);
-			for elem in value.iter()
-			{
-				let tmp: i64 = 20;
-				if let ComputorUnit::F64(val) = elem.unit {
+	let mut newline: String = String::new();
 
-					println!("var -> {:?}", val + tmp as f64);
-				}
-			}
-		}
-	} else {
-		println!("ERROR");
+	// newline = computorelems.iter().fold(String::new(),|mut acc, var| acc.push_str( &var.var_so_strong() )  );
+	for elem in computorelems {
+		newline.push_str(&elem.var_to_string());
+		newline.push(' ');
 	}
-
-	// match res {
-	// 		nom::IResult::Done(rest, value) => {
-	// 			if !rest.is_empty() {
-	// 				println!("invalid command> {:?}", rest)
-	// 			} else {
-	// 				// println!("Done {:?}", value)
-	// 				// for elem in value.iter()
-	// 				// {
-	// 				// 	if let ComputorUnit::F64{val} = elem.unit {
-	// 				// 		print!("{:?}", val);
-	// 				// 	}
-	// 				// }
-	// 			}
-	// 		},
-	// 		nom::IResult::Incomplete(needed) => { println!("Needed {:?}", needed) },
-	// 		nom::IResult::Error(err) => { println!("Err {:?}", err ) },
-	// }
+	newline
 }
 
+// fn select_next_parse(elem_list: &Vec<ComputorElem>)
+// {
+	// if elem_list.len() < 2 {
+	// 	println!("Erorr");
+	// 	return ;
+	// }
+
+	// if let ComputorUnit::VAR(ref var) = elem_list[0].unit {
+	// 	if let ComputorUnit::ATT(ref att) = elem_list[1].unit {
+	// 		if att == "=" {
+	// 			println!("new var is |{}|", var);
+	// 		}
+	// 	}	
+	// }
+// }
+
+// pub fn dump<T: Debug>(res: nom::IResult<&str,T>)
+fn dump(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<String, ComputorElem>)
+{
+	if let nom::IResult::Done(rest, elems) = res {
+		if !rest.is_empty() {
+			println!("invalid command > {:?}", rest)
+		} else {
+			// replace var
+			println!("{:?}", select_next_parse(&computorelem_to_string(elems)));
+		}
+	} else {
+		println!("Bad Format");
+	}
+}
 
 fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
-	let mut name = String::new();
+	let mut line: String = String::new();
 
 	loop {
-		std::io::stdin().read_line(&mut name).ok().expect("Failed to read line");
+		std::io::stdin().read_line(&mut line).ok().expect("Failed to read line");
 		// test_parse
-		// dump(select_parser(&mut name));
-		println!("{:?}", expr(&mut name));
-		// test_nom(&mut name);
-		name.clear();
+		dump(select_parser(&mut line), var_list);
+		// println!("{:?}", expr(&mut line));
+		// test_nom(&mut line);
+		line.clear();
 	}
 }
 

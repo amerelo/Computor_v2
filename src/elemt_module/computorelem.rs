@@ -15,6 +15,23 @@ pub struct ComputorElem {
 	pub unit: ComputorUnit,
 }
 
+impl ComputorElem {
+	// TODO: set error if NONE
+	pub fn var_to_string(self) -> String
+	{
+		let mut mystring: String = String::new();
+		match self.unit {
+			ComputorUnit::I64(var) => mystring = var.to_string(),
+			ComputorUnit::F64(var) => mystring = var.to_string(),
+			ComputorUnit::VAR(var) => mystring = var,
+			ComputorUnit::ATT(var) => mystring = var,
+			ComputorUnit::MAT(var) => println!("TODO mat to string"),
+			ComputorUnit::NONE => println!("ERROR NONE value"),
+		}
+		return mystring;
+	}
+}
+
 impl Add for ComputorElem {
 	type Output = ComputorElem;
 

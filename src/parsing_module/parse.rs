@@ -46,6 +46,8 @@ named!(pub get_attributor<&str, ComputorElem>, do_parse!(
 			tag!("+") |
 			tag!("-") |
 			tag!("/") |
+			tag!("(") |
+			tag!(")") |
 			tag!("**") |
 			tag!("*") |
 			tag!("%") |
@@ -80,13 +82,26 @@ named!(pub select_parser<&str, Vec<ComputorElem> >,
 	)
 );
 
-named!(factor<&str, ComputorElem >,
-	alt!(
-		ws!(float64) |
-		ws!(int64) |
-		ws!(delimited!( tag_s!("("), expr, tag_s!(")") ))
-	)
-);
+named!(atribut_var<&str, Vec<ComputorElem> >, do_parse!(
+	init: count!(
+		do_parse!(
+			var: ws!(get_var) >>
+			att: ws!(get_attributor) >>
+			(var)
+		), 1 ) >>
+	(init)	
+));
+
+named!(pub select_next_parse<&str, Vec<ComputorElem> >, alt!(
+	ws!(atribut_var)
+));
+
+
+named!(factor<&str, ComputorElem>, alt!(
+	ws!(float64) |
+	ws!(int64) |
+	ws!(delimited!( tag_s!("("), expr, tag_s!(")") ))
+));
 
 named!(term<&str, ComputorElem >, do_parse!(
 	init: factor >>
