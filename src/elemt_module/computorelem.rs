@@ -1,6 +1,6 @@
 use std::ops::{ Add, Sub ,Div , Mul};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)] 
 pub enum ComputorUnit {
 	I64(i64),
 	F64(f64),
@@ -10,7 +10,7 @@ pub enum ComputorUnit {
 	NONE
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct ComputorElem {
 	pub unit: ComputorUnit,
 }
@@ -25,10 +25,25 @@ impl ComputorElem {
 			ComputorUnit::F64(var) => mystring = var.to_string(),
 			ComputorUnit::VAR(var) => mystring = var,
 			ComputorUnit::ATT(var) => mystring = var,
-			ComputorUnit::MAT(var) => println!("TODO mat to string"),
+			ComputorUnit::MAT(_var) => println!("TODO mat to string"),
 			ComputorUnit::NONE => println!("ERROR NONE value"),
 		}
 		return mystring;
+	}
+
+	pub fn myclone(self) -> ComputorElem
+	{
+		let mut newcomputorelem : ComputorElem = ComputorElem{ unit: ComputorUnit::NONE };
+
+		match self.unit {
+			ComputorUnit::I64(var) => newcomputorelem.unit =  ComputorUnit::I64(var),
+			ComputorUnit::F64(var) => newcomputorelem.unit =  ComputorUnit::F64(var),
+			ComputorUnit::VAR(var) => newcomputorelem.unit =  ComputorUnit::VAR(var),
+			ComputorUnit::ATT(var) => newcomputorelem.unit =  ComputorUnit::ATT(var),
+			ComputorUnit::MAT(_var) => println!("TODO clone  mat to string"),
+			ComputorUnit::NONE => println!("ERROR clone NONE value"),
+		}
+		return newcomputorelem;
 	}
 }
 

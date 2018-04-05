@@ -71,23 +71,24 @@ fn computorelem_to_string(computorelems: Vec<ComputorElem>) -> String
 }
 
 // check valid elems
-// fn add_new_var(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<String, ComputorElem>)
-// {
-// 	if let nom::IResult::Done(rest, elems) = res {
-// 		if !rest.is_empty() {
-// 			println!("invalid command <in ADD new var> {:?}", rest)
-// 		} else {
-// 			if elems.len() < 3 {
-// 				println!("Bad Format");
-// 			}
-// 			else {
-// 				var_list.insert("test".to_owned(), elems[3]);
-// 			}
-// 		}
-// 	} else {
-// 		println!("Bad Format");
-// 	}
-// }
+fn add_new_var(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<String, ComputorElem>)
+{
+	if let nom::IResult::Done(rest, elems) = res {
+		if !rest.is_empty() {
+			println!("invalid command <in ADD new var> {:?}", rest)
+		} else {
+			if elems.len() < 3 {
+				println!("Bad Format");
+				return ;
+			}
+			if let ComputorUnit::VAR(var) = elems[0].unit.clone() { 
+				var_list.insert(var, elems[2].clone()); 
+			}
+		}
+	} else {
+		println!("Bad Format");
+	}
+}
 
 // pub fn dump<T: Debug>(res: nom::IResult<&str,T>)
 fn dump(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<String, ComputorElem>)
@@ -96,8 +97,9 @@ fn dump(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<Strin
 		if !rest.is_empty() {
 			println!("invalid command > {:?}", rest)
 		} else {
-			// add_new_var(select_next_parse(&computorelem_to_string(elems)), var_list);
-			println!("{:?}", select_next_parse(&computorelem_to_string(elems)) )
+			add_new_var(select_next_parse(&computorelem_to_string(elems)), var_list);
+		
+			// println!("{:?}", select_next_parse(&computorelem_to_string(elems)) )
 		}
 	} else {
 		println!("Bad Format");
@@ -111,7 +113,7 @@ fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
 		std::io::stdin().read_line(&mut line).ok().expect("Failed to read line");
 		// test_parse
 		dump(select_parser(&mut line), var_list);
-		// println!("{:?}", expr(&mut line));
+		println!("{:?}", var_list);
 		// test_nom(&mut line);
 		line.clear();
 	}
