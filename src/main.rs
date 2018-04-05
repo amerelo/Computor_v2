@@ -70,20 +70,23 @@ fn computorelem_to_string(computorelems: Vec<ComputorElem>) -> String
 	newline
 }
 
-// fn select_next_parse(elem_list: &Vec<ComputorElem>)
+// check valid elems
+// fn add_new_var(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<String, ComputorElem>)
 // {
-	// if elem_list.len() < 2 {
-	// 	println!("Erorr");
-	// 	return ;
-	// }
-
-	// if let ComputorUnit::VAR(ref var) = elem_list[0].unit {
-	// 	if let ComputorUnit::ATT(ref att) = elem_list[1].unit {
-	// 		if att == "=" {
-	// 			println!("new var is |{}|", var);
-	// 		}
-	// 	}	
-	// }
+// 	if let nom::IResult::Done(rest, elems) = res {
+// 		if !rest.is_empty() {
+// 			println!("invalid command <in ADD new var> {:?}", rest)
+// 		} else {
+// 			if elems.len() < 3 {
+// 				println!("Bad Format");
+// 			}
+// 			else {
+// 				var_list.insert("test".to_owned(), elems[3]);
+// 			}
+// 		}
+// 	} else {
+// 		println!("Bad Format");
+// 	}
 // }
 
 // pub fn dump<T: Debug>(res: nom::IResult<&str,T>)
@@ -93,8 +96,8 @@ fn dump(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<Strin
 		if !rest.is_empty() {
 			println!("invalid command > {:?}", rest)
 		} else {
-			// replace var
-			println!("{:?}", select_next_parse(&computorelem_to_string(elems)));
+			// add_new_var(select_next_parse(&computorelem_to_string(elems)), var_list);
+			println!("{:?}", select_next_parse(&computorelem_to_string(elems)) )
 		}
 	} else {
 		println!("Bad Format");
@@ -124,11 +127,11 @@ fn main()
 	pars_entry(&mut var_list);
 	// ############################################################
 
-	// // Terminal initialization
+	// Terminal initialization
 	// let backend = MouseBackend::new().unwrap();
 	// let mut terminal = Terminal::new(backend).unwrap();
 
-	// // Channels
+	// Channels
 	// let (tx, rx) = mpsc::channel();
 	// let input_tx = tx.clone();
 
@@ -144,7 +147,7 @@ fn main()
 	// 	}
 	// });
 
-	// // App
+	// App
 	// let mut app = App::new();
 
 	// // First draw call

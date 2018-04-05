@@ -40,9 +40,15 @@ named!(pub float64<&str, ComputorElem>, do_parse!(
 	(ComputorElem{ unit: ComputorUnit::F64(elem) })
 ));
 
+named!(pub get_equal<&str, ComputorElem>, do_parse!(
+	elem: alt!(
+			tag!("=")
+	) >>
+	(ComputorElem{ unit: ComputorUnit::ATT( String::from(elem) ) })
+));
+
 named!(pub get_attributor<&str, ComputorElem>, do_parse!(
 	elem: alt!(
-			tag!("=") |
 			tag!("+") |
 			tag!("-") |
 			tag!("/") |
@@ -64,8 +70,8 @@ named!(pub get_var<&str, ComputorElem>, do_parse!(
 				_acc = String::from(v);// str::from_utf8(v).unwrap().to_string();
 				_acc
 			}
-		)  >>
-		( ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
+		) >>
+		(ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
 ));
 
 named!(pub select_parser<&str, Vec<ComputorElem> >,
@@ -74,6 +80,7 @@ named!(pub select_parser<&str, Vec<ComputorElem> >,
 			alt!(
 				ws!(float64) |
 				ws!(int64) |
+				ws!(get_equal) |
 				ws!(get_attributor) |
 				ws!(get_var)
 			)
@@ -86,16 +93,30 @@ named!(atribut_var<&str, Vec<ComputorElem> >, do_parse!(
 	init: count!(
 		do_parse!(
 			var: ws!(get_var) >>
-			att: ws!(get_attributor) >>
 			(var)
 		), 1 ) >>
-	(init)	
+	fold1: fold_many0!(
+		ws!(get_equal),
+		init,
+		|mut acc:Vec<ComputorElem>, item| {
+			acc.push(item);
+			acc
+		}
+	) >>
+	fold: fold_many0!(
+		expr,
+		fold1,
+		|mut acc:Vec<ComputorElem>, item| {
+			acc.push(item);
+			acc
+		}
+	) >>
+	(fold)
 ));
 
 named!(pub select_next_parse<&str, Vec<ComputorElem> >, alt!(
 	ws!(atribut_var)
 ));
-
 
 named!(factor<&str, ComputorElem>, alt!(
 	ws!(float64) |
