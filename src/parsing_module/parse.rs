@@ -154,11 +154,6 @@ named!(pub expr<&str, ComputorElem >, do_parse!(
 	>> (res)
 ));
 
-// pub fn test_parse(name : &mut String)
-// {
-//
-// }
-
 #[allow(dead_code)]
 pub fn test_reslut<T: Debug>(res: nom::IResult<&str,T>) -> ResultKind
 {

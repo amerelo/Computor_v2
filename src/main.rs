@@ -84,10 +84,10 @@ fn test_if_new_var(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<Str
 
 fn check_elem_parsed(res: nom::IResult<&str, Vec<ComputorElem>>) -> Result<Vec<ComputorElem>, io::Error>
 {
-	if let nom::IResult::Done(rest, elems) = res {
+	if let nom::IResult::Done(rest, elems) = res.clone() {
 		if rest.is_empty() {
 			return Ok(elems);
-		}
+		} 
 	}
 	return Err(std::io::Error::new(std::io::ErrorKind::Other, "Bad format"));
 }
@@ -134,14 +134,17 @@ fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
 
 	loop {
 		std::io::stdin().read_line(&mut line).ok().expect("Failed to read line :)");
-		// test_parse
+
+		if line.trim().is_empty() {
+			continue;
+		}
+
 		if let Ok(elems) = check_elem_parsed(parser_elems(&mut line)) {
 			identify_elements(&elems, var_list);
 		} else {
 			println!("{}", "Bad Format");
 		}
 		println!("{:?}", var_list);
-		// test_nom(&mut line);
 		line.clear();
 	}
 }
