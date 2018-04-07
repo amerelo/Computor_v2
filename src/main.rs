@@ -14,7 +14,7 @@ use tui::{ Terminal, backend::MouseBackend,
 	layout::{ Direction, Group, Rect, Size }, 
 	style::{ Color, Style }
 };
-use parsing_module::parse::{ select_next_parse, get_var, select_parser}; //, expr
+use parsing_module::parse::{ atribut_var, get_var, parser_elems}; //, expr
 use elemt_module::computorelem::{ComputorUnit, ComputorElem};
 // use parsing::parse_matrix::{ matrix };
 // use std::num::ParseIntError;
@@ -39,80 +39,107 @@ enum Event {
 	Input(event::Key),
 }
 
-// fn get_var(elems: Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem> ) {
-
-// map.insert(field_name, field_value);
-// }
-
-// TEST FUNCTION
-// pub fn test_nom(name : &mut String)
-// {
-//
-// 	println!("{:?}", select_parser(name));
-
-	// println!("{:?}", get_var(name));
-	// dump(expr(name));
-	// dump(matrix(name));
-// }
-
-// TEST FUNCTION
-// rest.drain(..());
-
-fn computorelem_to_string(computorelems: Vec<ComputorElem>) -> String
+// return Option
+fn computorelem_to_string(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> String
 {
 	let mut newline: String = String::new();
 
 	// newline = computorelems.iter().fold(String::new(),|mut acc, var| acc.push_str( &var.var_so_strong() )  );
 	for elem in computorelems {
-		newline.push_str(&elem.var_to_string());
+		if let ComputorUnit::VAR(var) = elem.unit.clone() {
+			match var_list.get(&var.to_lowercase()) {
+				Some(val) => newline.push_str(&val.clone().var_to_string().to_lowercase()),
+				None => println!("{} is not a variable yet ", &var)
+			}
+		} else {
+			newline.push_str(&elem.clone().var_to_string().to_lowercase());
+		}
 		newline.push(' ');
 	}
 	newline
 }
 
-// check valid elems
-fn add_new_var(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<String, ComputorElem>)
-{
-	if let nom::IResult::Done(rest, elems) = res {
-		if !rest.is_empty() {
-			println!("invalid command <in ADD new var> {:?}", rest)
-		} else {
-			if elems.len() < 3 {
-				println!("Bad Format");
-				return ;
-			}
-			if let ComputorUnit::VAR(var) = elems[0].unit.clone() { 
-				var_list.insert(var, elems[2].clone()); 
+fn test_if_new_var(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
+{	
+	if let ComputorUnit::VAR(var) = computorelems[0].unit.clone() {
+		if let ComputorUnit::ATT(att) = computorelems[1].unit.clone() {
+
+			if att == "=" {
+				let mut test: Vec<_> = computorelems.clone();
+				let mut test: Vec<_> = test.drain(2..).collect();
+
+				let new_str = computorelem_to_string(&test, var_list);
+				if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
+					for elem in elems {
+						var_list.insert(var.clone().to_lowercase(), elem.clone());
+						return true;
+					}
+				}
 			}
 		}
-	} else {
-		println!("Bad Format");
 	}
+	println!("{}", "Bad Format");
+	return false;
 }
 
-// pub fn dump<T: Debug>(res: nom::IResult<&str,T>)
-fn dump(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<String, ComputorElem>)
+fn check_elem_parsed(res: nom::IResult<&str, Vec<ComputorElem>>) -> Result<Vec<ComputorElem>, io::Error>
 {
 	if let nom::IResult::Done(rest, elems) = res {
-		if !rest.is_empty() {
-			println!("invalid command > {:?}", rest)
-		} else {
-			add_new_var(select_next_parse(&computorelem_to_string(elems)), var_list);
-		
-			// println!("{:?}", select_next_parse(&computorelem_to_string(elems)) )
+		if rest.is_empty() {
+			return Ok(elems);
 		}
-	} else {
-		println!("Bad Format");
 	}
+	return Err(std::io::Error::new(std::io::ErrorKind::Other, "Bad format"));
 }
+
+
+fn identify_elements(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>)
+{
+	if computorelems.len() < 3 {
+		println!("Bad Format");
+		return ;
+	}
+	if test_if_new_var(&computorelems, var_list) {
+		// println!("{}", "new var created");
+	}
+	// if let ComputorUnit::VAR(var) = elems[0].unit.clone() { 
+	// 	var_list.insert(var, elems[2].clone()); 
+	// }
+}
+
+// check valid elems
+// fn add_new_var(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<String, ComputorElem>)
+// {
+// 	if let nom::IResult::Done(rest, elems) = res {
+// 		if !rest.is_empty() {
+// 			println!("invalid command <in ADD new var> {:?}", rest)
+// 		} else {
+// 			//  ############
+// 			if elems.len() < 3 {
+// 				println!("Bad Format");
+// 				return ;
+// 			}
+// 			if let ComputorUnit::VAR(var) = elems[0].unit.clone() { 
+// 				var_list.insert(var, elems[2].clone()); 
+// 			}
+// 			//  ############
+// 		}
+// 	} else {
+// 		println!("Bad Format");
+// 	}
+// }
 
 fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
 	let mut line: String = String::new();
 
 	loop {
-		std::io::stdin().read_line(&mut line).ok().expect("Failed to read line");
+		std::io::stdin().read_line(&mut line).ok().expect("Failed to read line :)");
 		// test_parse
-		dump(select_parser(&mut line), var_list);
+		if let Ok(elems) = check_elem_parsed(parser_elems(&mut line)) {
+			identify_elements(&elems, var_list);
+		} else {
+			println!("{}", "Bad Format");
+		}
 		println!("{:?}", var_list);
 		// test_nom(&mut line);
 		line.clear();

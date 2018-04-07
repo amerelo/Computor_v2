@@ -14,7 +14,7 @@ pub enum ResultKind {
 }
 
 named!(signed_digits<&str, &str>, recognize!(
-	tuple!(
+	 tuple!(
 		opt!(alt!(tag_s!("+") | tag_s!("-"))),
 		digit
 	)
@@ -37,7 +37,7 @@ named!(pub int64<&str, ComputorElem>, do_parse!(
 
 named!(pub float64<&str, ComputorElem>, do_parse!(
 	elem: map_res!(floating_point, str::FromStr::from_str) >>
-	(ComputorElem{ unit: ComputorUnit::F64(elem) })
+	(ComputorElem{unit: ComputorUnit::F64(elem) })
 ));
 
 named!(pub get_equal<&str, ComputorElem>, do_parse!(
@@ -74,7 +74,7 @@ named!(pub get_var<&str, ComputorElem>, do_parse!(
 		(ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
 ));
 
-named!(pub select_parser<&str, Vec<ComputorElem> >,
+named!(pub parser_elems<&str, Vec<ComputorElem> >,
 	do_parse!(
 		res: many1!(
 			alt!(
@@ -89,23 +89,23 @@ named!(pub select_parser<&str, Vec<ComputorElem> >,
 	)
 );
 
-named!(atribut_var<&str, Vec<ComputorElem> >, do_parse!(
-	init: count!(
-		do_parse!(
-			var: ws!(get_var) >>
-			(var)
-		), 1 ) >>
-	fold1: fold_many0!(
-		ws!(get_equal),
-		init,
-		|mut acc:Vec<ComputorElem>, item| {
-			acc.push(item);
-			acc
-		}
-	) >>
+named!(pub atribut_var<&str, Vec<ComputorElem> >, do_parse!(
+	// init: count!(
+	// 	do_parse!(
+	// 		var: ws!(get_var) >>
+	// 		(var)
+	// 	), 1 ) >>
+	// fold1: fold_many0!(
+	// 	ws!(get_equal),
+	// 	init,
+	// 	|mut acc:Vec<ComputorElem>, item| {
+	// 		acc.push(item);
+	// 		acc
+	// 	}
+	// ) >>
 	fold: fold_many0!(
 		expr,
-		fold1,
+		Vec::<ComputorElem>::new(), // fold1
 		|mut acc:Vec<ComputorElem>, item| {
 			acc.push(item);
 			acc
@@ -114,9 +114,9 @@ named!(atribut_var<&str, Vec<ComputorElem> >, do_parse!(
 	(fold)
 ));
 
-named!(pub select_next_parse<&str, Vec<ComputorElem> >, alt!(
-	ws!(atribut_var)
-));
+// named!(pub select_next_parse<&str, Vec<ComputorElem> >, alt!(
+// 	ws!(atribut_var)
+// ));
 
 named!(factor<&str, ComputorElem>, alt!(
 	ws!(float64) |
