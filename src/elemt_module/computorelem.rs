@@ -6,7 +6,7 @@ pub enum ComputorUnit {
 	F64(f64),
 	VAR(String),
 	ATT(String),
-	MAT(Vec<ComputorUnit>),
+	MAT(Vec<Vec<ComputorElem>>),
 	NONE
 }
 
@@ -29,21 +29,6 @@ impl ComputorElem {
 			ComputorUnit::NONE => println!("ERROR NONE value"),
 		}
 		return mystring;
-	}
-
-	pub fn myclone(self) -> ComputorElem
-	{
-		let mut newcomputorelem : ComputorElem = ComputorElem{ unit: ComputorUnit::NONE };
-
-		match self.unit {
-			ComputorUnit::I64(var) => newcomputorelem.unit =  ComputorUnit::I64(var),
-			ComputorUnit::F64(var) => newcomputorelem.unit =  ComputorUnit::F64(var),
-			ComputorUnit::VAR(var) => newcomputorelem.unit =  ComputorUnit::VAR(var),
-			ComputorUnit::ATT(var) => newcomputorelem.unit =  ComputorUnit::ATT(var),
-			ComputorUnit::MAT(_var) => println!("TODO clone  mat to string"),
-			ComputorUnit::NONE => println!("ERROR clone NONE value"),
-		}
-		return newcomputorelem;
 	}
 }
 

@@ -134,7 +134,6 @@ fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
 
 	loop {
 		std::io::stdin().read_line(&mut line).ok().expect("Failed to read line :)");
-
 		if line.trim().is_empty() {
 			continue;
 		}
