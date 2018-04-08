@@ -63,7 +63,6 @@ fn test_if_new_var(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<Str
 {	
 	if let ComputorUnit::VAR(var) = computorelems[0].unit.clone() {
 		if let ComputorUnit::ATT(att) = computorelems[1].unit.clone() {
-
 			if att == "=" {
 				let mut test: Vec<_> = computorelems.clone();
 				let mut test: Vec<_> = test.drain(2..).collect();

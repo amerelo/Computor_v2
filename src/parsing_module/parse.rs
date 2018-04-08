@@ -5,6 +5,7 @@ use nom::{digit, alphanumeric};
 // , Err,ErrorKind
 
 use elemt_module::computorelem::{ComputorUnit, ComputorElem};
+use parsing_module::parse_matrix::{ matrix };
 
 #[derive(PartialEq, Debug)]
 pub enum ResultKind {
@@ -78,11 +79,13 @@ named!(pub parser_elems<&str, Vec<ComputorElem> >,
 	do_parse!(
 		res: many1!(
 			alt!(
+				ws!(matrix) |
 				ws!(float64) |
 				ws!(int64) |
 				ws!(get_equal) |
 				ws!(get_attributor) |
-				ws!(get_var)
+				ws!(get_var) 
+				
 			)
 		) >>
 		(res)
