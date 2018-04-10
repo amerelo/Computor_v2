@@ -62,22 +62,20 @@ fn computorelem_to_string(computorelems: &Vec<ComputorElem>, var_list: &mut Hash
 fn test_if_new_var(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
 {	
 	if let ComputorUnit::VAR(var) = computorelems[0].unit.clone() {
-		if let ComputorUnit::ATT(att) = computorelems[1].unit.clone() {
-			if att == "=" {
-				let mut test: Vec<_> = computorelems.clone();
-				let mut test: Vec<_> = test.drain(2..).collect();
+		if let ComputorUnit::SHOW(_att) = computorelems[1].unit.clone() {
+			let mut test: Vec<_> = computorelems.clone();
+			let mut test: Vec<_> = test.drain(2..).collect();
 
-				let new_str = computorelem_to_string(&test, var_list);
-				if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
-					for elem in elems {
-						var_list.insert(var.clone().to_lowercase(), elem.clone());
-						return true;
-					}
+			let new_str = computorelem_to_string(&test, var_list);
+			if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
+				for elem in elems {
+					var_list.insert(var.clone().to_lowercase(), elem.clone());
+					return true;
 				}
 			}
 		}
 	}
-	println!("{}", "Bad Format");
+	// println!("{}", "Bad Format");
 	return false;
 }
 
@@ -91,15 +89,30 @@ fn check_elem_parsed(res: nom::IResult<&str, Vec<ComputorElem>>) -> Result<Vec<C
 	return Err(std::io::Error::new(std::io::ErrorKind::Other, "Bad format"));
 }
 
+fn show_result(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
+{
+	let mut test: Vec<_> = computorelems.clone();
+	
+	let last_elem = test.pop();
+	println!("{:?}", last_elem);
+
+	let last_elem = test.pop();
+	println!("{:?}", last_elem);
+
+	return true;
+}
+
 
 fn identify_elements(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>)
 {
 	if computorelems.len() < 3 {
-		println!("Bad Format");
+		println!("Bad Format :(");
 		return ;
 	}
-	if test_if_new_var(&computorelems, var_list) {
-		// println!("{}", "new var created");
+	show_result(&computorelems, var_list);
+
+	if !test_if_new_var(&computorelems, var_list) {
+		println!("{}", "error in format");
 	}
 	// if let ComputorUnit::VAR(var) = elems[0].unit.clone() { 
 	// 	var_list.insert(var, elems[2].clone()); 

@@ -45,9 +45,10 @@ named!(pub get_equal<&str, ComputorElem>, do_parse!(
 	elem: alt!(
 			tag!("=")
 	) >>
-	(ComputorElem{ unit: ComputorUnit::ATT( String::from(elem) ) })
+	(ComputorElem{ unit: ComputorUnit::SHOW( String::from(elem) ) })
 ));
 
+// tag!("?") |
 named!(pub get_attributor<&str, ComputorElem>, do_parse!(
 	elem: alt!(
 			tag!("+") |
@@ -75,6 +76,11 @@ named!(pub get_var<&str, ComputorElem>, do_parse!(
 		(ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
 ));
 
+
+
+
+
+
 named!(pub parser_elems<&str, Vec<ComputorElem> >,
 	do_parse!(
 		res: many1!(
@@ -84,8 +90,7 @@ named!(pub parser_elems<&str, Vec<ComputorElem> >,
 				ws!(int64) |
 				ws!(get_equal) |
 				ws!(get_attributor) |
-				ws!(get_var) 
-				
+				ws!(get_var) 				
 			)
 		) >>
 		(res)
