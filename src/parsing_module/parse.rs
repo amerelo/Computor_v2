@@ -41,14 +41,18 @@ named!(pub float64<&str, ComputorElem>, do_parse!(
 	(ComputorElem{unit: ComputorUnit::F64(elem) })
 ));
 
-named!(pub get_equal<&str, ComputorElem>, do_parse!(
-	elem: alt!(
-			tag!("=")
-	) >>
-	(ComputorElem{ unit: ComputorUnit::SHOW( String::from(elem) ) })
+named!(pub get_new<&str, ComputorElem>, do_parse!(
+	elem: ws!(get_var) >>
+		ws!(tag!("=")) >>
+	(ComputorElem{ unit: ComputorUnit::NEWVAR( elem.var_to_string() ) })
 ));
 
-// tag!("?") |
+named!(pub get_show<&str, ComputorElem>, do_parse!(
+	ws!(tag!("=")) >>
+	ws!(tag!("?")) >>
+	(ComputorElem{ unit: ComputorUnit::SHOW })
+));
+
 named!(pub get_attributor<&str, ComputorElem>, do_parse!(
 	elem: alt!(
 			tag!("+") |
@@ -76,11 +80,6 @@ named!(pub get_var<&str, ComputorElem>, do_parse!(
 		(ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
 ));
 
-
-
-
-
-
 named!(pub parser_elems<&str, Vec<ComputorElem> >,
 	do_parse!(
 		res: many1!(
@@ -88,7 +87,8 @@ named!(pub parser_elems<&str, Vec<ComputorElem> >,
 				ws!(matrix) |
 				ws!(float64) |
 				ws!(int64) |
-				ws!(get_equal) |
+				ws!(get_show) |
+				ws!(get_new) |
 				ws!(get_attributor) |
 				ws!(get_var) 				
 			)
@@ -104,7 +104,7 @@ named!(pub atribut_var<&str, Vec<ComputorElem> >, do_parse!(
 	// 		(var)
 	// 	), 1 ) >>
 	// fold1: fold_many0!(
-	// 	ws!(get_equal),
+	// 	ws!(get_new),
 	// 	init,
 	// 	|mut acc:Vec<ComputorElem>, item| {
 	// 		acc.push(item);

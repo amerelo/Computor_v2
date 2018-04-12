@@ -4,11 +4,11 @@ use std::ops::{ Add, Sub ,Div , Mul};
 pub enum ComputorUnit {
 	I64(i64),
 	F64(f64),
-	NEWVAR(String),
 	VAR(String),
 	ATT(String),
-	SHOW(String),
 	MAT(Vec<Vec<ComputorElem>>),
+	NEWVAR(String),
+	SHOW,
 	NONE
 }
 
@@ -28,7 +28,7 @@ impl ComputorElem {
 			ComputorUnit::VAR(var) => mystring = var,
 			ComputorUnit::ATT(var) => mystring = var,
 			ComputorUnit::NEWVAR(var) => mystring = var,
-			ComputorUnit::SHOW(var) => mystring = var,
+			ComputorUnit::SHOW => mystring = "=?".to_owned(),
 			ComputorUnit::MAT(_var) => println!("TODO mat to string"),
 			ComputorUnit::NONE => println!("ERROR NONE value"),
 		}
