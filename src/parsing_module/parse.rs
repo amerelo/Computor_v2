@@ -5,7 +5,7 @@ use nom::{digit, alphanumeric};
 // , Err,ErrorKind
 
 use elemt_module::computorelem::{ComputorUnit, ComputorElem};
-use parsing_module::parse_matrix::{ matrix };
+use parsing_module::{ parse_matrix::matrix , parse_func::get_func };
 
 #[derive(PartialEq, Debug)]
 pub enum ResultKind {
@@ -15,7 +15,7 @@ pub enum ResultKind {
 }
 
 named!(signed_digits<&str, &str>, recognize!(
-	 tuple!(
+	tuple!(
 		opt!(alt!(tag_s!("+") | tag_s!("-"))),
 		digit
 	)
@@ -42,9 +42,11 @@ named!(pub float64<&str, ComputorElem>, do_parse!(
 ));
 
 named!(pub get_new<&str, ComputorElem>, do_parse!(
-	elem: ws!(get_var) >>
-		ws!(tag!("=")) >>
-	(ComputorElem{ unit: ComputorUnit::NEWVAR( elem.var_to_string() ) })
+	elem: tuple!(
+		ws!(get_var),
+		ws!(tag!("="))
+	) >>
+	(ComputorElem{ unit: ComputorUnit::NEWVAR( elem.0.var_to_string() ) })
 ));
 
 named!(pub get_show<&str, ComputorElem>, do_parse!(
@@ -83,14 +85,15 @@ named!(pub get_var<&str, ComputorElem>, do_parse!(
 named!(pub parser_elems<&str, Vec<ComputorElem> >,
 	do_parse!(
 		res: many1!(
-			alt!(
+			alt_complete!(
+				ws!(get_func) |
 				ws!(matrix) |
 				ws!(float64) |
 				ws!(int64) |
-				ws!(get_show) |
 				ws!(get_new) |
 				ws!(get_attributor) |
-				ws!(get_var) 				
+				ws!(get_var) |
+				ws!(get_show)
 			)
 		) >>
 		(res)
@@ -98,19 +101,6 @@ named!(pub parser_elems<&str, Vec<ComputorElem> >,
 );
 
 named!(pub atribut_var<&str, Vec<ComputorElem> >, do_parse!(
-	// init: count!(
-	// 	do_parse!(
-	// 		var: ws!(get_var) >>
-	// 		(var)
-	// 	), 1 ) >>
-	// fold1: fold_many0!(
-	// 	ws!(get_new),
-	// 	init,
-	// 	|mut acc:Vec<ComputorElem>, item| {
-	// 		acc.push(item);
-	// 		acc
-	// 	}
-	// ) >>
 	fold: fold_many0!(
 		expr,
 		Vec::<ComputorElem>::new(), // fold1
@@ -121,10 +111,6 @@ named!(pub atribut_var<&str, Vec<ComputorElem> >, do_parse!(
 	) >>
 	(fold)
 ));
-
-// named!(pub select_next_parse<&str, Vec<ComputorElem> >, alt!(
-// 	ws!(atribut_var)
-// ));
 
 named!(factor<&str, ComputorElem>, alt!(
 	ws!(float64) |

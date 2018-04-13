@@ -1,5 +1,6 @@
-#[macro_use]
+#![allow(dead_code)] // TODO: rm in the end
 
+#[macro_use]
 extern crate nom;
 extern crate tui;
 extern crate termion;
@@ -59,24 +60,6 @@ fn computorelem_to_string(computorelems: &Vec<ComputorElem>, var_list: &mut Hash
 	newline
 }
 
-fn test_if_new_var(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
-{	
-	if let ComputorUnit::NEWVAR(var) = computorelems[0].unit.clone() {
-		let mut new_vec: Vec<_> = computorelems.clone();
-		let mut new_vec: Vec<_> = new_vec.drain(1..).collect();
-
-		let new_str = computorelem_to_string(&new_vec, var_list);
-		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
-			for elem in elems {
-				var_list.insert(var.clone().to_lowercase(), elem.clone());
-				return true;
-			}
-		}
-	}
-	// println!("{}", "Bad Format");
-	return false;
-}
-
 fn check_elem_parsed(res: nom::IResult<&str, Vec<ComputorElem>>) -> Result<Vec<ComputorElem>, io::Error>
 {
 	if let nom::IResult::Done(rest, elems) = res.clone() {
@@ -87,6 +70,60 @@ fn check_elem_parsed(res: nom::IResult<&str, Vec<ComputorElem>>) -> Result<Vec<C
 	return Err(std::io::Error::new(std::io::ErrorKind::Other, "Bad format"));
 }
 
+fn set_var(var: String, elems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
+{
+	if elems.len() == 1 && elems[0].unit != ComputorUnit::NONE {
+		var_list.insert(var.clone().to_lowercase(), elems[0].clone());
+		return true;
+	}
+	return false;
+}
+
+fn replace_var_for(new_var: String, old_var: String, vec: &mut Vec<ComputorElem>) -> String
+{
+	let mut newline: String = String::new();
+
+	for mut elem in vec.iter_mut() {
+		if elem.clone().var_to_string() == old_var {
+			elem.unit = ComputorUnit::VAR(new_var.clone());
+		}
+	}
+	for elem in vec.iter() {
+		newline.push_str(&elem.clone().var_to_string().to_lowercase());
+		newline.push(' ');
+	}
+	newline
+}
+
+fn new_func(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
+{
+	if let ComputorUnit::FUNC(name, var) = computorelems[0].unit.clone() {
+		let mut new_vec: Vec<_> = computorelems.clone();
+		let mut new_vec: Vec<_> = new_vec.drain(1..).collect();
+
+		let new_str = replace_var_for("42".to_owned(), var, &mut new_vec);
+		if let Ok(_elems) = check_elem_parsed(atribut_var(&new_str)) {
+			var_list.insert(name.to_lowercase(), ComputorElem{ unit: ComputorUnit::FUNCVAR(new_vec) } );
+			return true;
+		}
+	}
+	return false;
+}
+
+fn new_var(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
+{	
+	if let ComputorUnit::NEWVAR(var) = computorelems[0].unit.clone() {
+		let mut new_vec: Vec<_> = computorelems.clone();
+		let mut new_vec: Vec<_> = new_vec.drain(1..).collect();
+
+		let new_str = computorelem_to_string(&new_vec, var_list);
+		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
+			return set_var(var, &elems, var_list);
+		}
+	}
+	return false;
+}
+
 fn show_result(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
 {
 	let mut new_vec: Vec<_> = computorelems.clone();
@@ -94,7 +131,6 @@ fn show_result(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String,
 	if ComputorUnit::SHOW == new_vec[new_vec.len() - 1].unit {
 		new_vec.pop();
 		let new_str = computorelem_to_string(&new_vec, var_list);
-		println!("new str ----- {}",new_str );
 		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
 			println!("elems> {:?}", elems);
 			return true;
@@ -103,44 +139,17 @@ fn show_result(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String,
 	return false;
 }
 
-
 fn identify_elements(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>)
 {
 	if computorelems.len() < 2 {
-		println!("Bad Format :(");
+		println!("Bad Format :( (need more details)");
 		return ;
 	}
-	;
 
-	if !show_result(&computorelems, var_list) && !test_if_new_var(&computorelems, var_list){
+	if !show_result(&computorelems, var_list) && !new_var(&computorelems, var_list) && !new_func(&computorelems, var_list) {
 		println!("{}", "error in format");
 	}
-	// if let ComputorUnit::VAR(var) = elems[0].unit.clone() { 
-	// 	var_list.insert(var, elems[2].clone()); 
-	// }
 }
-
-// check valid elems
-// fn add_new_var(res: nom::IResult<&str, Vec<ComputorElem>>, var_list: &mut HashMap<String, ComputorElem>)
-// {
-// 	if let nom::IResult::Done(rest, elems) = res {
-// 		if !rest.is_empty() {
-// 			println!("invalid command <in ADD new var> {:?}", rest)
-// 		} else {
-// 			//  ############
-// 			if elems.len() < 3 {
-// 				println!("Bad Format");
-// 				return ;
-// 			}
-// 			if let ComputorUnit::VAR(var) = elems[0].unit.clone() { 
-// 				var_list.insert(var, elems[2].clone()); 
-// 			}
-// 			//  ############
-// 		}
-// 	} else {
-// 		println!("Bad Format");
-// 	}
-// }
 
 fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
 	let mut line: String = String::new();
@@ -153,8 +162,6 @@ fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
 
 		if let Ok(elems) = check_elem_parsed(parser_elems(&mut line)) {
 			identify_elements(&elems, var_list);
-		} else {
-			println!("{}", "Bad Format");
 		}
 		println!("{:?}", var_list);
 		line.clear();

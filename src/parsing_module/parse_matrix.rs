@@ -1,7 +1,6 @@
 use parsing_module::parse::{ float64, int64 };
 use elemt_module::computorelem::{ComputorUnit, ComputorElem};
 
-
 named!(get_nextfloat<&str, ComputorElem>, do_parse!(
 	ws!(tag_s!(",")) >>
 	val: alt!(

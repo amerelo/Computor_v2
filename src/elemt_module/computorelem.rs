@@ -7,6 +7,8 @@ pub enum ComputorUnit {
 	VAR(String),
 	ATT(String),
 	MAT(Vec<Vec<ComputorElem>>),
+	FUNC(String, String),
+	FUNCVAR(Vec<ComputorElem>),
 	NEWVAR(String),
 	SHOW,
 	NONE
@@ -29,6 +31,12 @@ impl ComputorElem {
 			ComputorUnit::ATT(var) => mystring = var,
 			ComputorUnit::NEWVAR(var) => mystring = var,
 			ComputorUnit::SHOW => mystring = "=?".to_owned(),
+			ComputorUnit::FUNC(mut name, var) => {
+				name.push_str("( ");
+				name.push_str(&var);
+				name.push_str(" )");
+			},
+			ComputorUnit::FUNCVAR(_var) => println!("TODO FUNCVAR to string"),
 			ComputorUnit::MAT(_var) => println!("TODO mat to string"),
 			ComputorUnit::NONE => println!("ERROR NONE value"),
 		}
