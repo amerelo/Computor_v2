@@ -15,10 +15,16 @@ use tui::{ Terminal, backend::MouseBackend,
 	layout::{ Direction, Group, Rect, Size }, 
 	style::{ Color, Style }
 };
-use parsing_module::parse::{ atribut_var, get_var, parser_elems}; //, expr
+use parsing_module::parse::{ atribut_var, parser_elems}; //, expr
 use elemt_module::computorelem::{ComputorUnit, ComputorElem};
 // use parsing::parse_matrix::{ matrix };
 // use std::num::ParseIntError;
+
+#[derive(PartialEq, Debug)]
+struct ComputorLists {
+	var_list: HashMap<String, ComputorElem>,
+	func_list: HashMap<String, Vec<ComputorElem> >,
+}
 
 struct App {
 	size: Rect,
@@ -41,14 +47,14 @@ enum Event {
 }
 
 // return Option
-fn computorelem_to_string(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> String
+fn computorelem_to_string(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists) -> String
 {
 	let mut newline: String = String::new();
 
-	// newline = computorelems.iter().fold(String::new(),|mut acc, var| acc.push_str( &var.var_so_strong() )  );
+	// newline = computorelems.iter().fold(String::new(),|mut acc, var| acc.push_str( &var.var_so_strong() ));
 	for elem in computorelems {
 		if let ComputorUnit::VAR(var) = elem.unit.clone() {
-			match var_list.get(&var.to_lowercase()) {
+			match computorlists.var_list.get(&var.to_lowercase()) {
 				Some(val) => newline.push_str(&val.clone().var_to_string().to_lowercase()),
 				None => println!("{} is not a variable yet ", &var)
 			}
@@ -70,10 +76,11 @@ fn check_elem_parsed(res: nom::IResult<&str, Vec<ComputorElem>>) -> Result<Vec<C
 	return Err(std::io::Error::new(std::io::ErrorKind::Other, "Bad format"));
 }
 
-fn set_var(var: String, elems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
+// TODO: need to add (i, matrix)
+fn set_var(var: String, elems: &Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
 {
-	if elems.len() == 1 && elems[0].unit != ComputorUnit::NONE {
-		var_list.insert(var.clone().to_lowercase(), elems[0].clone());
+	if elems.len() == 1 && elems[0].unit != ComputorUnit::NONE && var.to_lowercase() != "i" {
+		computorlists.var_list.insert(var.clone().to_lowercase(), elems[0].clone());
 		return true;
 	}
 	return false;
@@ -95,7 +102,7 @@ fn replace_var_for(new_var: String, old_var: String, vec: &mut Vec<ComputorElem>
 	newline
 }
 
-fn new_func(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
+fn new_func(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
 {
 	if let ComputorUnit::FUNC(name, var) = computorelems[0].unit.clone() {
 		let mut new_vec: Vec<_> = computorelems.clone();
@@ -103,34 +110,34 @@ fn new_func(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, Co
 
 		let new_str = replace_var_for("42".to_owned(), var, &mut new_vec);
 		if let Ok(_elems) = check_elem_parsed(atribut_var(&new_str)) {
-			var_list.insert(name.to_lowercase(), ComputorElem{ unit: ComputorUnit::FUNCVAR(new_vec) } );
+			computorlists.func_list.insert(name.to_lowercase(), new_vec);
 			return true;
 		}
 	}
 	return false;
 }
 
-fn new_var(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
+fn new_var(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
 {	
 	if let ComputorUnit::NEWVAR(var) = computorelems[0].unit.clone() {
 		let mut new_vec: Vec<_> = computorelems.clone();
 		let mut new_vec: Vec<_> = new_vec.drain(1..).collect();
 
-		let new_str = computorelem_to_string(&new_vec, var_list);
+		let new_str = computorelem_to_string(&new_vec, computorlists);
 		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
-			return set_var(var, &elems, var_list);
+			return set_var(var, &elems, computorlists);
 		}
 	}
 	return false;
 }
 
-fn show_result(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>) -> bool
+fn show_result(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
 {
 	let mut new_vec: Vec<_> = computorelems.clone();
 	
 	if ComputorUnit::SHOW == new_vec[new_vec.len() - 1].unit {
 		new_vec.pop();
-		let new_str = computorelem_to_string(&new_vec, var_list);
+		let new_str = computorelem_to_string(&new_vec, computorlists);
 		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
 			println!("elems> {:?}", elems);
 			return true;
@@ -139,19 +146,19 @@ fn show_result(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String,
 	return false;
 }
 
-fn identify_elements(computorelems: &Vec<ComputorElem>, var_list: &mut HashMap<String, ComputorElem>)
+fn identify_elements(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists)
 {
 	if computorelems.len() < 2 {
 		println!("Bad Format :( (need more details)");
 		return ;
 	}
 
-	if !show_result(&computorelems, var_list) && !new_var(&computorelems, var_list) && !new_func(&computorelems, var_list) {
+	if !show_result(&computorelems, computorlists) && !new_var(&computorelems, computorlists) && !new_func(&computorelems, computorlists) {
 		println!("{}", "error in format");
 	}
 }
 
-fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
+fn pars_entry(computorlists: &mut ComputorLists) {
 	let mut line: String = String::new();
 
 	loop {
@@ -161,9 +168,9 @@ fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
 		}
 
 		if let Ok(elems) = check_elem_parsed(parser_elems(&mut line)) {
-			identify_elements(&elems, var_list);
+			identify_elements(&elems, computorlists);
 		}
-		println!("{:?}", var_list);
+		println!("{:?}", computorlists.var_list);
 		line.clear();
 	}
 }
@@ -171,11 +178,14 @@ fn pars_entry(var_list: &mut HashMap<String, ComputorElem>) {
 fn main()
 {
 	// ############################################################
-	// let mut var_list: Vec<ComputorVar> = Vec::new();
-	let mut var_list: HashMap<String, ComputorElem> = HashMap::new();
+	// let mut computorlists: Vec<ComputorVar> = Vec::new();
+	let mut computorlists: ComputorLists =  ComputorLists {
+		func_list: HashMap::new(),
+		var_list: HashMap::new()
+	}; 
 
 	println!("Welcome to computor_v2");
-	pars_entry(&mut var_list);
+	pars_entry(&mut computorlists);
 	// ############################################################
 
 	// Terminal initialization

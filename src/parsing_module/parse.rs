@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::str;
 use nom;
-use nom::{digit, alphanumeric};
+use nom::{digit, alpha};
 // , Err,ErrorKind
 
 use elemt_module::computorelem::{ComputorUnit, ComputorElem};
@@ -46,7 +46,7 @@ named!(pub get_new<&str, ComputorElem>, do_parse!(
 		ws!(get_var),
 		ws!(tag!("="))
 	) >>
-	(ComputorElem{ unit: ComputorUnit::NEWVAR( elem.0.var_to_string() ) })
+	(ComputorElem{ unit: ComputorUnit::NEWVAR( elem.0.var_to_string())})
 ));
 
 named!(pub get_show<&str, ComputorElem>, do_parse!(
@@ -71,34 +71,56 @@ named!(pub get_attributor<&str, ComputorElem>, do_parse!(
 ));
 
 named!(pub get_var<&str, ComputorElem>, do_parse!(
-	elem: fold_many0!(
-			alphanumeric,
+	init: fold_many1!(
+			alpha,
 			String::new(),
 			|mut _acc: String, v | {
 				_acc = String::from(v);// str::from_utf8(v).unwrap().to_string();
 				_acc
 			}
 		) >>
+	elem: fold_many0!(
+			digit,
+			init,
+			|mut _acc: String, v | {
+				// _acc = String::from(v);// str::from_utf8(v).unwrap().to_string();
+				_acc.push_str(v);
+				_acc
+			}
+		) >>
 		(ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
 ));
 
-named!(pub parser_elems<&str, Vec<ComputorElem> >,
-	do_parse!(
-		res: many1!(
-			alt_complete!(
-				ws!(get_func) |
-				ws!(matrix) |
-				ws!(float64) |
-				ws!(int64) |
-				ws!(get_new) |
-				ws!(get_attributor) |
-				ws!(get_var) |
-				ws!(get_show)
-			)
-		) >>
-		(res)
-	)
-);
+named!(pub vectorised<&str, Vec<ComputorElem> >, do_parse!(
+	res: many1!(
+		alt_complete!(
+			ws!(get_func) |
+			ws!(float64) |
+			ws!(int64) |
+			ws!(get_new) |
+			ws!(get_attributor) |
+			ws!(get_var) |
+			ws!(get_show)
+		)
+	) >>
+	(res)	
+));
+
+named!(pub parser_elems<&str, Vec<ComputorElem> >, do_parse!(
+	res: many1!(
+		alt_complete!(
+			ws!(get_func) |
+			ws!(matrix) |
+			ws!(float64) |
+			ws!(int64) |
+			ws!(get_new) |
+			ws!(get_attributor) |
+			ws!(get_var) |
+			ws!(get_show)
+		)
+	) >>
+	(res)
+));
 
 named!(pub atribut_var<&str, Vec<ComputorElem> >, do_parse!(
 	fold: fold_many0!(
