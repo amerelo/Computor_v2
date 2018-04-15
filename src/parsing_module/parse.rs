@@ -33,12 +33,17 @@ named!(floating_point<&str,&str>, recognize!(
 
 named!(pub int64<&str, ComputorElem>, do_parse!(
 	elem: map_res!(signed_digits, str::FromStr::from_str) >>
-	(ComputorElem{ unit: ComputorUnit::I64(elem) })
+	(ComputorElem{unit: ComputorUnit::I64(elem, false) })
 ));
 
 named!(pub float64<&str, ComputorElem>, do_parse!(
 	elem: map_res!(floating_point, str::FromStr::from_str) >>
-	(ComputorElem{unit: ComputorUnit::F64(elem) })
+	(ComputorElem{unit: ComputorUnit::F64(elem, false) })
+));
+
+named!(pub get_imaginari<&str, ComputorElem>, do_parse!(
+	elem: tag!("i") >>
+	(ComputorElem{ unit: ComputorUnit::I64(1, true) })
 ));
 
 named!(pub get_new<&str, ComputorElem>, do_parse!(
@@ -49,6 +54,7 @@ named!(pub get_new<&str, ComputorElem>, do_parse!(
 	(ComputorElem{ unit: ComputorUnit::NEWVAR( elem.0.var_to_string())})
 ));
 
+// TODO: fix show
 named!(pub get_show<&str, ComputorElem>, do_parse!(
 	ws!(tag!("=")) >>
 	ws!(tag!("?")) >>
@@ -60,12 +66,18 @@ named!(pub get_attributor<&str, ComputorElem>, do_parse!(
 			tag!("+") |
 			tag!("-") |
 			tag!("/") |
-			tag!("(") |
-			tag!(")") |
 			tag!("**") |
 			tag!("*") |
 			tag!("%") |
 			tag!("^")
+	) >>
+	(ComputorElem{ unit: ComputorUnit::ATT( String::from(elem) ) })
+));
+
+named!(pub get_parentheses<&str, ComputorElem>, do_parse!(
+	elem: alt!(
+			tag!("(") |
+			tag!(")")
 	) >>
 	(ComputorElem{ unit: ComputorUnit::ATT( String::from(elem) ) })
 ));
@@ -78,7 +90,7 @@ named!(pub get_var<&str, ComputorElem>, do_parse!(
 				_acc = String::from(v);// str::from_utf8(v).unwrap().to_string();
 				_acc
 			}
-		) >>
+	) >>
 	elem: fold_many0!(
 			digit,
 			init,
@@ -87,20 +99,36 @@ named!(pub get_var<&str, ComputorElem>, do_parse!(
 				_acc.push_str(v);
 				_acc
 			}
+	) >>
+	(ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
+));
+
+named!(priority_par<&str, ComputorElem>, do_parse!(
+ 	elem: delimited!( tag_s!("("), 
+		do_parse!(
+		res: many1!(
+			alt_complete!(
+				ws!(get_imaginari) |
+				ws!(priority_par) |
+				ws!(float64) |
+				ws!(int64) |
+				ws!(get_attributor)
+			)
 		) >>
-		(ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
+		(res)	
+	), tag_s!(")") ) >>
+	(ComputorElem{ unit: ComputorUnit::VECT( elem ) } )
 ));
 
 named!(pub vectorised<&str, Vec<ComputorElem> >, do_parse!(
 	res: many1!(
 		alt_complete!(
-			ws!(get_func) |
+			ws!(get_imaginari) |
+			ws!(priority_par) |
 			ws!(float64) |
 			ws!(int64) |
-			ws!(get_new) |
 			ws!(get_attributor) |
-			ws!(get_var) |
-			ws!(get_show)
+			ws!(get_parentheses)
 		)
 	) >>
 	(res)	
@@ -109,12 +137,14 @@ named!(pub vectorised<&str, Vec<ComputorElem> >, do_parse!(
 named!(pub parser_elems<&str, Vec<ComputorElem> >, do_parse!(
 	res: many1!(
 		alt_complete!(
+			ws!(get_imaginari) |
 			ws!(get_func) |
 			ws!(matrix) |
 			ws!(float64) |
 			ws!(int64) |
 			ws!(get_new) |
 			ws!(get_attributor) |
+			ws!(get_parentheses) |
 			ws!(get_var) |
 			ws!(get_show)
 		)
@@ -176,8 +206,7 @@ pub fn test_reslut<T: Debug>(res: nom::IResult<&str,T>) -> ResultKind
 		nom::IResult::Done(rest, _) => {
 			if !rest.is_empty() {
 				ResultKind::ERROR
-			}
-			else {
+			} else {
 				ResultKind::OK
 			}
 		},

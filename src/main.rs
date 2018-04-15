@@ -15,7 +15,7 @@ use tui::{ Terminal, backend::MouseBackend,
 	layout::{ Direction, Group, Rect, Size }, 
 	style::{ Color, Style }
 };
-use parsing_module::parse::{ atribut_var, parser_elems}; //, expr
+use parsing_module::parse::{ atribut_var, parser_elems, vectorised}; //, expr
 use elemt_module::computorelem::{ComputorUnit, ComputorElem};
 // use parsing::parse_matrix::{ matrix };
 // use std::num::ParseIntError;
@@ -71,7 +71,7 @@ fn check_elem_parsed(res: nom::IResult<&str, Vec<ComputorElem>>) -> Result<Vec<C
 	if let nom::IResult::Done(rest, elems) = res.clone() {
 		if rest.is_empty() {
 			return Ok(elems);
-		} 
+		}
 	}
 	return Err(std::io::Error::new(std::io::ErrorKind::Other, "Bad format"));
 }
@@ -102,11 +102,40 @@ fn replace_var_for(new_var: String, old_var: String, vec: &mut Vec<ComputorElem>
 	newline
 }
 
-fn new_func(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
+// fn test_recursion(computorelems: &Vec<ComputorElem>)
+// {
+	
+// }
+
+fn test_op(computorelems: &mut Vec<ComputorElem>) -> Vec<ComputorElem>
+{
+	println!("VEC -> {:?}", computorelems);
+
+	return computorelems.clone();
+}
+
+fn manage_imaginari(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
+{
+	if let ComputorUnit::NEWVAR(var) = computorelems[0].unit.clone() {
+		let mut new_vec: Vec<_> = computorelems.drain(1..).collect();
+
+		let new_str = computorelem_to_string(&new_vec, computorlists);
+		
+		if let Ok(mut elems) = check_elem_parsed(vectorised(&new_str) ) {
+			test_op(&mut elems);
+			// return set_var(var, &elems, computorlists);
+			return true;
+		} else {
+			println!("Error at vectorice str -> {}", new_str);
+		}
+	}
+	return false;
+}
+
+fn new_func(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
 {
 	if let ComputorUnit::FUNC(name, var) = computorelems[0].unit.clone() {
-		let mut new_vec: Vec<_> = computorelems.clone();
-		let mut new_vec: Vec<_> = new_vec.drain(1..).collect();
+		let mut new_vec: Vec<_> = computorelems.drain(1..).collect();
 
 		let new_str = replace_var_for("42".to_owned(), var, &mut new_vec);
 		if let Ok(_elems) = check_elem_parsed(atribut_var(&new_str)) {
@@ -117,11 +146,10 @@ fn new_func(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists
 	return false;
 }
 
-fn new_var(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
+fn new_var(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
 {	
 	if let ComputorUnit::NEWVAR(var) = computorelems[0].unit.clone() {
-		let mut new_vec: Vec<_> = computorelems.clone();
-		let mut new_vec: Vec<_> = new_vec.drain(1..).collect();
+		let mut new_vec: Vec<_> = computorelems.drain(1..).collect();
 
 		let new_str = computorelem_to_string(&new_vec, computorlists);
 		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
@@ -139,23 +167,26 @@ fn show_result(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLi
 		new_vec.pop();
 		let new_str = computorelem_to_string(&new_vec, computorlists);
 		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
-			println!("elems> {:?}", elems);
+			//TODO: need to make print for show var
+			println!("SHOW --> {:?}", elems);
 			return true;
 		}
 	}
 	return false;
 }
 
-fn identify_elements(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists)
+// TODO: make verif of matrix, function, imaginari && etc..
+fn identify_elements(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists)
 {
 	if computorelems.len() < 2 {
 		println!("Bad Format :( (need more details)");
 		return ;
 	}
 
-	if !show_result(&computorelems, computorlists) && !new_var(&computorelems, computorlists) && !new_func(&computorelems, computorlists) {
-		println!("{}", "error in format");
-	}
+	manage_imaginari(computorelems, computorlists);
+	// if !show_result(computorelems, computorlists) && !new_var(computorelems, computorlists) && !new_func(computorelems, computorlists) {
+	// 	println!("{}", "error in format");
+	// }
 }
 
 fn pars_entry(computorlists: &mut ComputorLists) {
@@ -167,10 +198,11 @@ fn pars_entry(computorlists: &mut ComputorLists) {
 			continue;
 		}
 
-		if let Ok(elems) = check_elem_parsed(parser_elems(&mut line)) {
-			identify_elements(&elems, computorlists);
+		if let Ok(mut elems) = check_elem_parsed(parser_elems(&mut line)) {
+			identify_elements(&mut elems, computorlists);
 		}
-		println!("{:?}", computorlists.var_list);
+		println!("VARS {:?}", computorlists.var_list);
+		println!("FUNCS {:?}", computorlists.func_list);
 		line.clear();
 	}
 }
