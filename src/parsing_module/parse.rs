@@ -51,7 +51,7 @@ named!(pub get_new<&str, ComputorElem>, do_parse!(
 		ws!(get_var),
 		ws!(tag!("="))
 	) >>
-	(ComputorElem{ unit: ComputorUnit::NEWVAR( elem.0.var_to_string())})
+	(ComputorElem{ unit: ComputorUnit::NEWVAR( elem.0.to_string())})
 ));
 
 // TODO: fix show

@@ -53,13 +53,13 @@ fn computorelem_to_string(computorelems: &Vec<ComputorElem>, computorlists: &mut
 
 	// newline = computorelems.iter().fold(String::new(),|mut acc, var| acc.push_str( &var.var_so_strong() ));
 	for elem in computorelems {
-		if let ComputorUnit::VAR(var) = elem.unit.clone() {
+		if let ComputorUnit::VAR(ref var) = elem.unit {
 			match computorlists.var_list.get(&var.to_lowercase()) {
-				Some(val) => newline.push_str(&val.clone().var_to_string().to_lowercase()),
+				Some(val) => newline.push_str(&val.to_string().to_lowercase()),
 				None => println!("{} is not a variable yet ", &var)
 			}
 		} else {
-			newline.push_str(&elem.clone().var_to_string().to_lowercase());
+			newline.push_str(&elem.to_string().to_lowercase());
 		}
 		newline.push(' ');
 	}
@@ -68,7 +68,7 @@ fn computorelem_to_string(computorelems: &Vec<ComputorElem>, computorlists: &mut
 
 fn check_elem_parsed(res: nom::IResult<&str, Vec<ComputorElem>>) -> Result<Vec<ComputorElem>, io::Error>
 {
-	if let nom::IResult::Done(rest, elems) = res.clone() {
+	if let nom::IResult::Done(rest, elems) = res {
 		if rest.is_empty() {
 			return Ok(elems);
 		}
@@ -80,7 +80,7 @@ fn check_elem_parsed(res: nom::IResult<&str, Vec<ComputorElem>>) -> Result<Vec<C
 fn set_var(var: String, elems: &Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
 {
 	if elems.len() == 1 && elems[0].unit != ComputorUnit::NONE && var.to_lowercase() != "i" {
-		computorlists.var_list.insert(var.clone().to_lowercase(), elems[0].clone());
+		computorlists.var_list.insert(var.to_lowercase(), elems[0].clone());
 		return true;
 	}
 	return false;
@@ -88,18 +88,15 @@ fn set_var(var: String, elems: &Vec<ComputorElem>, computorlists: &mut ComputorL
 
 fn replace_var_for(new_var: String, old_var: String, vec: &mut Vec<ComputorElem>) -> String
 {
-	let mut newline: String = String::new();
-
-	for mut elem in vec.iter_mut() {
-		if elem.clone().var_to_string() == old_var {
-			elem.unit = ComputorUnit::VAR(new_var.clone());
+	vec.iter().fold("".to_string(), |mut new_line, x| {
+		if x.to_string().to_lowercase() == old_var { 
+			new_line.push_str( &format!("{} ", new_var ) );
+		} else {
+			new_line.push_str( &format!("{} ", &x.to_string().to_lowercase() ) );
 		}
-	}
-	for elem in vec.iter() {
-		newline.push_str(&elem.clone().var_to_string().to_lowercase());
-		newline.push(' ');
-	}
-	newline
+		new_line
+		}
+	)
 }
 
 // fn test_recursion(computorelems: &Vec<ComputorElem>)
@@ -140,6 +137,7 @@ fn new_func(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorL
 		let new_str = replace_var_for("42".to_owned(), var, &mut new_vec);
 		if let Ok(_elems) = check_elem_parsed(atribut_var(&new_str)) {
 			computorlists.func_list.insert(name.to_lowercase(), new_vec);
+			println!("---> {:#?}", computorlists.func_list);
 			return true;
 		}
 	}
@@ -153,22 +151,20 @@ fn new_var(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLi
 
 		let new_str = computorelem_to_string(&new_vec, computorlists);
 		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
-			return set_var(var, &elems, computorlists);
+			return set_var(var.to_string(), &elems, computorlists);
 		}
 	}
 	return false;
 }
 
-fn show_result(computorelems: &Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
+fn show_result(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
 {
-	let mut new_vec: Vec<_> = computorelems.clone();
-	
-	if ComputorUnit::SHOW == new_vec[new_vec.len() - 1].unit {
-		new_vec.pop();
-		let new_str = computorelem_to_string(&new_vec, computorlists);
+	if ComputorUnit::SHOW == computorelems[computorelems.len() - 1].unit {
+		computorelems.pop();
+		let new_str = computorelem_to_string(&computorelems, computorlists);
 		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
 			//TODO: need to make print for show var
-			println!("SHOW --> {:?}", elems);
+			println!("SHOW --> {:#?}", elems);
 			return true;
 		}
 	}
@@ -183,10 +179,10 @@ fn identify_elements(computorelems: &mut Vec<ComputorElem>, computorlists: &mut 
 		return ;
 	}
 
-	manage_imaginari(computorelems, computorlists);
-	// if !show_result(computorelems, computorlists) && !new_var(computorelems, computorlists) && !new_func(computorelems, computorlists) {
-	// 	println!("{}", "error in format");
-	// }
+	// manage_imaginari(computorelems, computorlists);
+	if !show_result(computorelems, computorlists) && !new_var(computorelems, computorlists) && !new_func(computorelems, computorlists) {
+		println!("{}", "error in format");
+	}
 }
 
 fn pars_entry(computorlists: &mut ComputorLists) {
@@ -220,11 +216,11 @@ fn main()
 	pars_entry(&mut computorlists);
 	// ############################################################
 
-	// Terminal initialization
+	// // Terminal initialization
 	// let backend = MouseBackend::new().unwrap();
 	// let mut terminal = Terminal::new(backend).unwrap();
 
-	// Channels
+	// // Channels
 	// let (tx, rx) = mpsc::channel();
 	// let input_tx = tx.clone();
 
@@ -240,7 +236,7 @@ fn main()
 	// 	}
 	// });
 
-	// App
+	// // App
 	// let mut app = App::new();
 
 	// // First draw call
@@ -276,8 +272,7 @@ fn main()
 	// 	}
 	// 	draw(&mut terminal, &app);
 	// }
-
-	// terminal.show_cursor().unwrap();
+	// // terminal.show_cursor().unwrap();
 	// terminal.clear().unwrap();
 }
 

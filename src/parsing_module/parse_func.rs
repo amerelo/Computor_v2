@@ -7,5 +7,5 @@ named!(pub get_func<&str, ComputorElem>, do_parse!(
 	var: ws!(get_var) >>
 	ws!(tag!(")")) >>
 	ws!(tag!("=")) >>
-	(ComputorElem{ unit: ComputorUnit::FUNC(name.var_to_string() , var.var_to_string()) })
+	(ComputorElem{ unit: ComputorUnit::FUNC(name.to_string() , var.to_string()) })
 ));

@@ -1,4 +1,6 @@
 use std::ops::{ Add, Sub ,Div , Mul};
+use std::fmt::{ Display, Formatter, Result};
+
 
 #[derive(PartialEq, Debug, Clone)] 
 pub enum ComputorUnit {
@@ -20,41 +22,6 @@ pub struct ComputorElem {
 }
 
 impl ComputorElem {
-	// TODO: set error if NONE
-	pub fn var_to_string(self) -> String
-	{
-		let mut mystring: String = String::new();
-		match self.unit {
-			ComputorUnit::I64(var, img) => {
-				mystring = var.to_string();
-				if img == true {
-					mystring.push_str(" * i");
-				}
-			}
-			,
-			ComputorUnit::F64(var, img) => {
-				mystring = var.to_string();
-				if img == true {
-					mystring.push_str(" * i");
-				}
-			}
-			,
-			ComputorUnit::VAR(var) => mystring = var,
-			ComputorUnit::ATT(var) => mystring = var,
-			ComputorUnit::NEWVAR(var) => mystring = var,
-			ComputorUnit::SHOW => mystring = "=?".to_owned(),
-			ComputorUnit::FUNC(mut name, var) => {
-				name.push_str("( ");
-				name.push_str(&var);
-				name.push_str(" )");
-			},
-			ComputorUnit::MAT(_var) => println!("TODO mat to string"),
-			ComputorUnit::VECT(_var) => println!("TODO VEC to string"),
-			ComputorUnit::NONE => println!("ERROR NONE value"),
-		}
-		return mystring;
-	}
-
 	pub fn get_type_vars(self, other: &ComputorElem, is_int: &mut bool, f1: &mut f64, f2: &mut f64, i1: &mut i64, i2: &mut i64) -> bool
 	{
 		let set1: bool;
@@ -76,6 +43,36 @@ impl ComputorElem {
 			*is_int = true;
 		}
 		return true;
+	}
+}
+
+impl Display for ComputorElem {
+	fn fmt(&self, f: &mut Formatter) -> Result {
+		
+		match self.unit {
+			ComputorUnit::I64(var, img) => {
+				if img == true {
+					return write!(f, "{} * i ", var.to_string());
+				} else {
+					return write!(f, "{} ", var.to_string());
+				}
+			},
+			ComputorUnit::F64(var, img) => {
+				if img == true {
+					return write!(f, "{} * i ", var.to_string());
+				} else {
+					return write!(f, "{} ", var.to_string());
+				}
+			},
+			ComputorUnit::VAR(ref var) => return write!(f, "{}", var),
+			ComputorUnit::ATT(ref var) => return write!(f, "{}", var),
+			ComputorUnit::NEWVAR(ref var) => return write!(f, "{}", var),
+			ComputorUnit::SHOW => return write!(f, "=?"),
+			ComputorUnit::FUNC(ref name, ref var) => return write!(f, "{}({})", name, var),
+			ComputorUnit::MAT(ref _var) => return write!(f, "NONE"), //NONE
+			ComputorUnit::VECT(ref _var) => return write!(f, "NONE"), //NONE
+			ComputorUnit::NONE => return write!(f, "NONE"), //NONE
+		}
 	}
 }
 
