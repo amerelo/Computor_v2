@@ -99,28 +99,15 @@ fn replace_var_for(new_var: String, old_var: String, vec: &mut Vec<ComputorElem>
 	)
 }
 
-// fn test_recursion(computorelems: &Vec<ComputorElem>)
-// {
-	
-// }
-
-fn test_op(computorelems: &mut Vec<ComputorElem>) -> Vec<ComputorElem>
-{
-	println!("VEC -> {:?}", computorelems);
-
-	return computorelems.clone();
-}
 
 fn manage_imaginari(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
 {
 	if let ComputorUnit::NEWVAR(var) = computorelems[0].unit.clone() {
 		let mut new_vec: Vec<_> = computorelems.drain(1..).collect();
-
 		let new_str = computorelem_to_string(&new_vec, computorlists);
-		
+
 		if let Ok(mut elems) = check_elem_parsed(vectorised(&new_str) ) {
-			test_op(&mut elems);
-			// return set_var(var, &elems, computorlists);
+			println!("{:#?}", elems);
 			return true;
 		} else {
 			println!("Error at vectorice str -> {}", new_str);
@@ -145,13 +132,16 @@ fn new_func(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorL
 }
 
 fn new_var(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
-{	
+{
 	if let ComputorUnit::NEWVAR(var) = computorelems[0].unit.clone() {
 		let mut new_vec: Vec<_> = computorelems.drain(1..).collect();
-
 		let new_str = computorelem_to_string(&new_vec, computorlists);
+
 		if let Ok(elems) = check_elem_parsed(atribut_var(&new_str)) {
 			return set_var(var.to_string(), &elems, computorlists);
+		}
+		else {
+			println!("error in new var -> {:#?}", new_str);
 		}
 	}
 	return false;
@@ -178,6 +168,7 @@ fn identify_elements(computorelems: &mut Vec<ComputorElem>, computorlists: &mut 
 		println!("Bad Format :( (need more details)");
 		return ;
 	}
+	println!("vars 1 pars -> {:#?}", computorelems);
 
 	// manage_imaginari(computorelems, computorlists);
 	if !show_result(computorelems, computorlists) && !new_var(computorelems, computorlists) && !new_func(computorelems, computorlists) {

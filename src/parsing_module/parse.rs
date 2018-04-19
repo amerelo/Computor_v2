@@ -41,9 +41,32 @@ named!(pub float64<&str, ComputorElem>, do_parse!(
 	(ComputorElem{unit: ComputorUnit::F64(elem, false) })
 ));
 
-named!(pub get_imaginari<&str, ComputorElem>, do_parse!(
-	elem: tag!("i") >>
+named!(get_imaginari_mult_int<&str, ComputorElem>, do_parse!(
+	digit_elem: ws!(map_res!(signed_digits, str::FromStr::from_str))>>
+	opt!( ws!(tag_s!("*")) ) >>
+	tag!("i") >>
+	(ComputorElem{ unit: ComputorUnit::I64(digit_elem, true) })
+));
+
+named!(get_imaginari_mult_float<&str, ComputorElem>, do_parse!(
+	digit_elem: ws!(map_res!(floating_point, str::FromStr::from_str)) >>
+	opt!( ws!(tag_s!("*")) ) >>
+	tag!("i") >>
+	(ComputorElem{ unit: ComputorUnit::F64(digit_elem, true) })
+));
+
+named!(get_imaginari_standar<&str, ComputorElem>, do_parse!(
+	tag!("i") >>
 	(ComputorElem{ unit: ComputorUnit::I64(1, true) })
+));
+
+named!(pub get_imaginari<&str, ComputorElem>, do_parse!(
+	elem: alt!(
+		get_imaginari_mult_int |
+		get_imaginari_mult_float |
+		get_imaginari_standar
+	) >>
+	(elem)
 ));
 
 named!(pub get_new<&str, ComputorElem>, do_parse!(
@@ -164,7 +187,8 @@ named!(pub atribut_var<&str, Vec<ComputorElem> >, do_parse!(
 	(fold)
 ));
 
-named!(factor<&str, ComputorElem>, alt!(
+named!(factor<&str, ComputorElem>, alt_complete!(
+	ws!(get_imaginari) |
 	ws!(float64) |
 	ws!(int64) |
 	ws!(delimited!( tag_s!("("), expr, tag_s!(")") ))
