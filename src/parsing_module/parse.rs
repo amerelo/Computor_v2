@@ -42,7 +42,7 @@ named!(pub float64<&str, ComputorElem>, do_parse!(
 ));
 
 named!(get_imaginari_mult_int<&str, ComputorElem>, do_parse!(
-	digit_elem: ws!(map_res!(signed_digits, str::FromStr::from_str))>>
+	digit_elem: map_res!(signed_digits, str::FromStr::from_str)>>
 	opt!( ws!(tag_s!("*")) ) >>
 	tag!("i") >>
 	(ComputorElem{ unit: ComputorUnit::I64(digit_elem, true) })
