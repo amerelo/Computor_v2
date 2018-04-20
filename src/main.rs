@@ -15,7 +15,7 @@ use tui::{ Terminal, backend::MouseBackend,
 	layout::{ Direction, Group, Rect, Size }, 
 	style::{ Color, Style }
 };
-use parsing_module::parse::{ atribut_var, parser_elems, vectorised}; //, expr
+use parsing_module::parse::{ atribut_var, parser_elems}; //, expr , vectorised
 use elemt_module::computorelem::{ComputorUnit, ComputorElem};
 // use parsing::parse_matrix::{ matrix };
 // use std::num::ParseIntError;
@@ -97,23 +97,6 @@ fn replace_var_for(new_var: String, old_var: String, vec: &mut Vec<ComputorElem>
 		new_line
 		}
 	)
-}
-
-
-fn manage_imaginari(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
-{
-	if let ComputorUnit::NEWVAR(var) = computorelems[0].unit.clone() {
-		let mut new_vec: Vec<_> = computorelems.drain(1..).collect();
-		let new_str = computorelem_to_string(&new_vec, computorlists);
-
-		if let Ok(mut elems) = check_elem_parsed(vectorised(&new_str) ) {
-			println!("{:#?}", elems);
-			return true;
-		} else {
-			println!("Error at vectorice str -> {}", new_str);
-		}
-	}
-	return false;
 }
 
 fn new_func(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool

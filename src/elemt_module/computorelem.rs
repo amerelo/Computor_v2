@@ -3,8 +3,10 @@ use std::fmt::{ Display, Formatter, Result};
 
 #[derive(PartialEq, Debug, Clone)] 
 pub enum ComputorUnit {
-	I64(i64, bool),
-	F64(f64, bool),
+	// I64(i64, bool),
+	// F64(f64, bool),
+	I64(i64, bool, i64),
+	F64(f64, bool, i64),
 	VAR(String),
 	ATT(String),
 	MAT(Vec<Vec<ComputorElem>>),
@@ -27,6 +29,7 @@ pub struct ComputorOperand {
 	pub is_float: (bool, bool),
 	pub is_img: (bool, bool),
 	pub is_vect: (bool, bool),
+	pub same_pow: bool	,
 	pub valid: bool
 }
 
@@ -101,7 +104,6 @@ impl ComputorElem {
 				}
 			}
 		}
-
 		return ComputorElem { unit: ComputorUnit::VECT(vec1) };
 	}
 	
@@ -111,19 +113,24 @@ impl ComputorElem {
 			is_float: (false, false),
 			is_img: (false, false),
 			is_vect: (false, false),
+			same_pow: false,
 			valid: true
 		};
+		let mut tmp_pow1 = 0;
+		let mut tmp_pow2 = 1;
 
-		if let ComputorUnit::F64(val, img) = self.unit { varf.0 = val; eleminfo.is_float.0 = true; eleminfo.is_img.0 = img}
-		else if let ComputorUnit::I64(val, img) = self.unit { vari.0 = val; eleminfo.is_float.0 = false; eleminfo.is_img.0 = img}
+		if let ComputorUnit::F64(val, img, pow) = self.unit { varf.0 = val; eleminfo.is_float.0 = true; eleminfo.is_img.0 = img; tmp_pow1 = pow}
+		else if let ComputorUnit::I64(val, img, pow) = self.unit { vari.0 = val; eleminfo.is_float.0 = false; eleminfo.is_img.0 = img; tmp_pow1 = pow}
 		else if let ComputorUnit::VECT(ref _elems) = self.unit { eleminfo.is_vect.0 = true }
 		else { eleminfo.valid = false ; return eleminfo }
 
-		if let ComputorUnit::F64(val, img) = other.unit { varf.1 = val; eleminfo.is_float.1 = true; eleminfo.is_img.1 = img}
-		else if let ComputorUnit::I64(val, img) = other.unit { vari.1 = val; eleminfo.is_float.0 = false; eleminfo.is_img.1 = img}
+		if let ComputorUnit::F64(val, img, pow) = other.unit { varf.1 = val; eleminfo.is_float.1 = true; eleminfo.is_img.1 = img; tmp_pow2 = pow}
+		else if let ComputorUnit::I64(val, img, pow) = other.unit { vari.1 = val; eleminfo.is_float.0 = false; eleminfo.is_img.1 = img; tmp_pow2 = pow}
 		else if let ComputorUnit::VECT(ref _elems) = self.unit { eleminfo.is_vect.1 = true }
 		else { eleminfo.valid = false ; return eleminfo }
-		
+
+		if tmp_pow1 == tmp_pow2 {eleminfo.same_pow = true;}
+
 		if eleminfo.is_float.0 == true || eleminfo.is_float.1 == true {
 			if eleminfo.is_float.0 == true && eleminfo.is_float.1 == false { varf.1 = vari.1 as f64; }
 			else if eleminfo.is_float.0 == false && eleminfo.is_float.1 == true { varf.0 = vari.0 as f64; }
@@ -137,19 +144,21 @@ impl Display for ComputorElem {
 	fn fmt(&self, f: &mut Formatter) -> Result {
 
 		match self.unit {
-			ComputorUnit::I64(var, img) => {
-				if img == true {
-					return write!(f, "{}i ", var.to_string());
-				} else {
-					return write!(f, "{} ", var.to_string());
-				}
+			ComputorUnit::I64(var, img, pow) => {
+				let mut res = var.to_string();
+				
+				if img { res.push('i'); }
+				if pow != 1 { res.push('^'); res.push_str(&pow.to_string()); }
+				res.push(' ');
+				return write!(f, "{}", res.to_string());
 			},
-			ComputorUnit::F64(var, img) => {
-				if img == true {
-					return write!(f, "{}i ", var.to_string());
-				} else {
-					return write!(f, "{} ", var.to_string());
-				}
+			ComputorUnit::F64(var, img, pow) => {
+				let mut res = var.to_string();
+				
+				if img { res.push('i'); }
+				if pow != 1 { res.push('^'); res.push_str(&pow.to_string()); }
+				res.push(' ');
+				return write!(f, "{}", res.to_string());
 			},
 			ComputorUnit::VAR(ref var) => return write!(f, "{}", var),
 			ComputorUnit::ATT(ref var) => return write!(f, "{}", var),
@@ -173,10 +182,14 @@ impl Add for ComputorElem {
 		let elems_info = self.get_type_vars(&other, &mut varf, &mut vari);
 		match elems_info {
 			ComputorOperand {valid, .. } if !valid => ComputorElem { unit: ComputorUnit::NONE },
-			ComputorOperand {is_vect, .. } if is_vect.0 || is_vect.1 => ComputorElem::vec_to_vec_operation(self, other, elems_info, ComputorAction::ADD),
-			ComputorOperand {is_img, .. } if is_img.0 != is_img.1 => ComputorElem { unit: ComputorUnit::VECT( vec![self, ComputorElem{ unit: ComputorUnit::ATT("+".to_string()) } , other] ) },
-			ComputorOperand {is_float, is_img, .. } if is_float.0 || is_float.1 => ComputorElem { unit: ComputorUnit::F64(varf.0 + varf.1, is_img.0 ) },
-			ComputorOperand {is_float, is_img, .. } if !is_float.0 && !is_float.1 => ComputorElem { unit: ComputorUnit::I64(vari.0 + vari.1, is_img.0 ) },
+			ComputorOperand {is_vect, .. } if is_vect.0 || is_vect.1 => 
+				ComputorElem::vec_to_vec_operation(self, other, elems_info, ComputorAction::ADD),
+			ComputorOperand {is_img, same_pow, .. } if is_img.0 != is_img.1 || !same_pow =>
+				ComputorElem { unit: ComputorUnit::VECT( vec![self, ComputorElem{ unit: ComputorUnit::ATT("+".to_string()) } , other] ) },
+			ComputorOperand {is_float, is_img, .. } if is_float.0 || is_float.1 =>
+				ComputorElem { unit: ComputorUnit::F64(varf.0 + varf.1, is_img.0, 1) },
+			ComputorOperand {is_float, is_img, .. } if !is_float.0 && !is_float.1 =>
+				ComputorElem { unit: ComputorUnit::I64(vari.0 + vari.1, is_img.0, 1) },
 			_ => ComputorElem { unit: ComputorUnit::NONE }
 		}
 	}
@@ -192,14 +205,20 @@ impl Sub for ComputorElem {
 		let elems_info = self.get_type_vars(&other, &mut varf, &mut vari);
 		match elems_info {
 			ComputorOperand {valid, .. } if !valid => ComputorElem { unit: ComputorUnit::NONE },
-			ComputorOperand {is_vect, .. } if is_vect.0 || is_vect.1 => ComputorElem::vec_to_vec_operation(self, other, elems_info, ComputorAction::SUB),
-			ComputorOperand {is_img, .. } if is_img.0 != is_img.1 => ComputorElem { unit: ComputorUnit::VECT( vec![self, ComputorElem{ unit: ComputorUnit::ATT("-".to_string()) } , other] ) },
-			ComputorOperand {is_float, is_img, .. } if is_float.0 || is_float.1 => ComputorElem { unit: ComputorUnit::F64(varf.0 - varf.1, is_img.0 ) },
-			ComputorOperand {is_float, is_img, .. } if !is_float.0 && !is_float.1 => ComputorElem { unit: ComputorUnit::I64(vari.0 - vari.1, is_img.0 ) },
+			ComputorOperand {is_vect, .. } if is_vect.0 || is_vect.1 =>
+				ComputorElem::vec_to_vec_operation(self, other, elems_info, ComputorAction::SUB),
+			ComputorOperand {is_img, same_pow, .. } if is_img.0 != is_img.1 || !same_pow =>
+				ComputorElem { unit: ComputorUnit::VECT( vec![self, ComputorElem{ unit: ComputorUnit::ATT("-".to_string()) } , other] ) },
+			ComputorOperand {is_float, is_img, .. } if is_float.0 || is_float.1 =>
+				ComputorElem { unit: ComputorUnit::F64(varf.0 - varf.1, is_img.0, 1 ) },
+			ComputorOperand {is_float, is_img, .. } if !is_float.0 && !is_float.1 =>
+				ComputorElem { unit: ComputorUnit::I64(vari.0 - vari.1, is_img.0, 1 ) },
 			_ => ComputorElem { unit: ComputorUnit::NONE }
 		}
 	}
 }
+
+// TODO: DO POW()
 
 impl Mul for ComputorElem {
 	type Output = ComputorElem;
@@ -211,10 +230,14 @@ impl Mul for ComputorElem {
 		let elems_info = self.get_type_vars(&other, &mut varf, &mut vari);
 		// imaginari mull
 		match elems_info {
-			ComputorOperand {valid, .. } if !valid => ComputorElem { unit: ComputorUnit::NONE },
-			ComputorOperand {is_vect, .. } if is_vect.0 || is_vect.1 => ComputorElem::vec_to_vec_operation(self, other, elems_info, ComputorAction::MUL),
-			ComputorOperand {is_float, is_img, .. } if is_float.0 || is_float.1 => ComputorElem { unit: ComputorUnit::F64(varf.0 * varf.1, if is_img.0 || is_img.1 { true } else { false } ) },
-			ComputorOperand {is_float, is_img, .. } if !is_float.0 && !is_float.1 => ComputorElem { unit: ComputorUnit::I64(vari.0 * vari.1, if is_img.0 || is_img.1 { true } else { false } ) },
+			ComputorOperand {valid, .. } if !valid => 
+				ComputorElem { unit: ComputorUnit::NONE },
+			ComputorOperand {is_vect, .. } if is_vect.0 || is_vect.1 => 
+				ComputorElem::vec_to_vec_operation(self, other, elems_info, ComputorAction::MUL),
+			ComputorOperand {is_float, is_img, .. } if is_float.0 || is_float.1 => 
+				ComputorElem { unit: ComputorUnit::F64(varf.0 * varf.1, if is_img.0 || is_img.1 { true } else { false }, 1 ) },
+			ComputorOperand {is_float, is_img, .. } if !is_float.0 && !is_float.1 => 
+				ComputorElem { unit: ComputorUnit::I64(vari.0 * vari.1, if is_img.0 || is_img.1 { true } else { false }, 1 ) },
 			_ => ComputorElem { unit: ComputorUnit::NONE }
 		}
 	}
@@ -232,9 +255,12 @@ impl Div for ComputorElem {
 		//TODO: ADD MODULO TO CHECK IF REST IS INT
 		match elems_info {
 			ComputorOperand {valid, .. } if !valid => ComputorElem { unit: ComputorUnit::NONE },
-			ComputorOperand {is_vect, .. } if is_vect.0 || is_vect.1 => ComputorElem::vec_to_vec_operation(self, other, elems_info, ComputorAction::DIV),
-			ComputorOperand {is_float, is_img, .. } if (is_float.0 || is_float.1) && varf.1 != 0.0 => ComputorElem { unit: ComputorUnit::F64(varf.0 / varf.1, if is_img.0 || is_img.1 { true } else { false } ) },
-			ComputorOperand {is_float, is_img, .. } if (!is_float.0 && !is_float.1) && vari.1 != 0 => ComputorElem { unit: ComputorUnit::I64(vari.0 / vari.1, if is_img.0 || is_img.1 { true } else { false } ) },
+			ComputorOperand {is_vect, .. } if is_vect.0 || is_vect.1 => 
+				ComputorElem::vec_to_vec_operation(self, other, elems_info, ComputorAction::DIV),
+			ComputorOperand {is_float, is_img, .. } if (is_float.0 || is_float.1) && varf.1 != 0.0 => 
+				ComputorElem { unit: ComputorUnit::F64(varf.0 / varf.1, if is_img.0 || is_img.1 { true } else { false }, 1 ) },
+			ComputorOperand {is_float, is_img, .. } if (!is_float.0 && !is_float.1) && vari.1 != 0 => 
+				ComputorElem { unit: ComputorUnit::I64(vari.0 / vari.1, if is_img.0 || is_img.1 { true } else { false }, 1 ) },
 			_ => ComputorElem { unit: ComputorUnit::NONE }
 		}
 	}

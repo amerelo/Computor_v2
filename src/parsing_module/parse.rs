@@ -32,39 +32,55 @@ named!(floating_point<&str,&str>, recognize!(
 ));
 
 named!(pub int64<&str, ComputorElem>, do_parse!(
-	elem: map_res!(signed_digits, str::FromStr::from_str) >>
-	(ComputorElem{unit: ComputorUnit::I64(elem, false) })
+	elem: alt_complete!(
+		do_parse!(
+			elem: map_res!(signed_digits, str::FromStr::from_str) >>
+			tag_s!("^") >>
+			pow: map_res!(digit, str::FromStr::from_str) >>
+			(ComputorElem{unit: ComputorUnit::I64(elem, false, pow) })
+		) |
+		do_parse!(
+			elem: map_res!(signed_digits, str::FromStr::from_str) >>
+			(ComputorElem{unit: ComputorUnit::I64(elem, false, 1) })
+		) 
+	) >>
+	(elem)
 ));
 
 named!(pub float64<&str, ComputorElem>, do_parse!(
-	elem: map_res!(floating_point, str::FromStr::from_str) >>
-	(ComputorElem{unit: ComputorUnit::F64(elem, false) })
-));
-
-named!(get_imaginari_mult_int<&str, ComputorElem>, do_parse!(
-	digit_elem: map_res!(signed_digits, str::FromStr::from_str)>>
-	opt!( ws!(tag_s!("*")) ) >>
-	tag!("i") >>
-	(ComputorElem{ unit: ComputorUnit::I64(digit_elem, true) })
-));
-
-named!(get_imaginari_mult_float<&str, ComputorElem>, do_parse!(
-	digit_elem: ws!(map_res!(floating_point, str::FromStr::from_str)) >>
-	opt!( ws!(tag_s!("*")) ) >>
-	tag!("i") >>
-	(ComputorElem{ unit: ComputorUnit::F64(digit_elem, true) })
-));
-
-named!(get_imaginari_standar<&str, ComputorElem>, do_parse!(
-	tag!("i") >>
-	(ComputorElem{ unit: ComputorUnit::I64(1, true) })
+	elem: alt_complete!(
+		do_parse!(
+			elem: map_res!(floating_point, str::FromStr::from_str) >>
+			tag_s!("^") >>
+			pow: map_res!(digit, str::FromStr::from_str) >>
+			(ComputorElem{unit: ComputorUnit::F64(elem, false, pow) })
+		) |
+		do_parse!(
+			elem: map_res!(floating_point, str::FromStr::from_str) >>
+			(ComputorElem{unit: ComputorUnit::F64(elem, false, 1) })
+		) 
+	) >>
+	(elem)
 ));
 
 named!(pub get_imaginari<&str, ComputorElem>, do_parse!(
-	elem: alt!(
-		get_imaginari_mult_int |
-		get_imaginari_mult_float |
-		get_imaginari_standar
+	elem: alt_complete!(
+			do_parse!(
+				digit_elem: ws!(map_res!(floating_point, str::FromStr::from_str)) >>
+				opt!( ws!(tag_s!("*")) ) >>
+				tag!("i") >>
+				(ComputorElem{ unit: ComputorUnit::F64(digit_elem, true, 1) })
+			) |
+			do_parse!(
+				digit_elem: map_res!(signed_digits, str::FromStr::from_str)>>
+				opt!( ws!(tag_s!("*")) ) >>
+				tag!("i") >>
+				(ComputorElem{ unit: ComputorUnit::I64(digit_elem, true, 1) })
+			) |
+			do_parse!(
+				tag!("i") >>
+				(ComputorElem{ unit: ComputorUnit::I64(1, true, 1) })
+			)		
 	) >>
 	(elem)
 ));
@@ -124,37 +140,6 @@ named!(pub get_var<&str, ComputorElem>, do_parse!(
 			}
 	) >>
 	(ComputorElem{ unit: ComputorUnit::VAR( elem ) } )
-));
-
-named!(priority_par<&str, ComputorElem>, do_parse!(
- 	elem: delimited!( tag_s!("("), 
-		do_parse!(
-		res: many1!(
-			alt_complete!(
-				ws!(get_imaginari) |
-				ws!(priority_par) |
-				ws!(float64) |
-				ws!(int64) |
-				ws!(get_attributor)
-			)
-		) >>
-		(res)	
-	), tag_s!(")") ) >>
-	(ComputorElem{ unit: ComputorUnit::VECT( elem ) } )
-));
-
-named!(pub vectorised<&str, Vec<ComputorElem> >, do_parse!(
-	res: many1!(
-		alt_complete!(
-			ws!(get_imaginari) |
-			ws!(priority_par) |
-			ws!(float64) |
-			ws!(int64) |
-			ws!(get_attributor) |
-			ws!(get_parentheses)
-		)
-	) >>
-	(res)	
 ));
 
 named!(pub parser_elems<&str, Vec<ComputorElem> >, do_parse!(
