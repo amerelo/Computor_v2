@@ -32,35 +32,13 @@ named!(floating_point<&str,&str>, recognize!(
 ));
 
 named!(pub int64<&str, ComputorElem>, do_parse!(
-	elem: alt_complete!(
-		do_parse!(
-			elem: map_res!(signed_digits, str::FromStr::from_str) >>
-			tag_s!("^") >>
-			pow: map_res!(digit, str::FromStr::from_str) >>
-			(ComputorElem{unit: ComputorUnit::I64(elem, false, pow) })
-		) |
-		do_parse!(
-			elem: map_res!(signed_digits, str::FromStr::from_str) >>
-			(ComputorElem{unit: ComputorUnit::I64(elem, false, 1) })
-		) 
-	) >>
-	(elem)
+	elem: map_res!(signed_digits, str::FromStr::from_str) >>
+	(ComputorElem{unit: ComputorUnit::I64(elem, false) })
 ));
 
 named!(pub float64<&str, ComputorElem>, do_parse!(
-	elem: alt_complete!(
-		do_parse!(
-			elem: map_res!(floating_point, str::FromStr::from_str) >>
-			tag_s!("^") >>
-			pow: map_res!(digit, str::FromStr::from_str) >>
-			(ComputorElem{unit: ComputorUnit::F64(elem, false, pow) })
-		) |
-		do_parse!(
-			elem: map_res!(floating_point, str::FromStr::from_str) >>
-			(ComputorElem{unit: ComputorUnit::F64(elem, false, 1) })
-		) 
-	) >>
-	(elem)
+	elem: map_res!(floating_point, str::FromStr::from_str) >>
+	(ComputorElem{unit: ComputorUnit::F64(elem, false) })
 ));
 
 named!(pub get_imaginari<&str, ComputorElem>, do_parse!(
@@ -69,17 +47,17 @@ named!(pub get_imaginari<&str, ComputorElem>, do_parse!(
 				digit_elem: ws!(map_res!(floating_point, str::FromStr::from_str)) >>
 				opt!( ws!(tag_s!("*")) ) >>
 				tag!("i") >>
-				(ComputorElem{ unit: ComputorUnit::F64(digit_elem, true, 1) })
+				(ComputorElem{ unit: ComputorUnit::F64(digit_elem, true) })
 			) |
 			do_parse!(
 				digit_elem: map_res!(signed_digits, str::FromStr::from_str)>>
 				opt!( ws!(tag_s!("*")) ) >>
 				tag!("i") >>
-				(ComputorElem{ unit: ComputorUnit::I64(digit_elem, true, 1) })
+				(ComputorElem{ unit: ComputorUnit::I64(digit_elem, true) })
 			) |
 			do_parse!(
 				tag!("i") >>
-				(ComputorElem{ unit: ComputorUnit::I64(1, true, 1) })
+				(ComputorElem{ unit: ComputorUnit::I64(1, true) })
 			)		
 	) >>
 	(elem)
