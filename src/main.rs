@@ -1,4 +1,4 @@
-#![allow(dead_code)] // TODO: rm in the end
+#![allow(dead_code)] // TODO: rm at the end
 
 #[macro_use]
 extern crate nom;
