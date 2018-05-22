@@ -115,7 +115,7 @@ fn new_func(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorL
 }
 
 fn new_var(computorelems: &mut Vec<ComputorElem>, computorlists: &mut ComputorLists) -> bool
-{
+{	
 	if let ComputorUnit::NEWVAR(var) = computorelems[0].unit.clone() {
 		let mut new_vec: Vec<_> = computorelems.drain(1..).collect();
 		let new_str = computorelem_to_string(&new_vec, computorlists);
